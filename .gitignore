@@ -56,7 +56,19 @@ mlruns/
 mlflow.db
 .mlflow/
 
+# AIM tracking
+.aim/
+
 # Project specific
 .mltrack/
 *.tmp
-.cache/.aim/
+.cache/
+
+# Node.js (for UI)
+node_modules/
+.next/
+out/
+.cache/
+*.tsbuildinfo
+.vercel
+.turbo

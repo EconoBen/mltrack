@@ -363,28 +363,49 @@ def config():
 
 
 @cli.command()
-@click.option("--port", type=int, default=5000, help="Port for the UI server (default: 5000)")
-@click.option("--host", default="127.0.0.1", help="Host to bind the UI server (default: 127.0.0.1)")
-def ui(port: int, host: str):
-    """Launch MLflow UI for experiment tracking."""
+@click.option("--port", type=int, default=5000, help="Port for the MLflow server (default: 5000)")
+@click.option("--host", default="127.0.0.1", help="Host to bind the MLflow server (default: 127.0.0.1)")
+@click.option("--modern", is_flag=True, help="Launch modern React UI instead of classic MLflow UI")
+@click.option("--ui-port", type=int, default=3000, help="Port for modern UI (default: 3000)")
+def ui(port: int, host: str, modern: bool, ui_port: int):
+    """Launch MLflow UI for experiment tracking.
+    
+    Examples:
+        mltrack ui                    # Classic MLflow UI
+        mltrack ui --modern          # Modern React UI
+        mltrack ui --modern --ui-port 3001  # Modern UI on custom port
+    """
     from mltrack.ui import launch_ui
     
     # Launch UI
     try:
         config = MLTrackConfig.find_config()
+        
+        if modern:
+            console.print("[bold cyan]🎨 Launching modern mltrack UI...[/bold cyan]")
+            console.print(f"   React UI: http://localhost:{ui_port}")
+            console.print(f"   MLflow API: http://localhost:{port}")
+        
         launch_ui(
             config=config,
             port=port,
-            host=host
+            host=host,
+            modern=modern,
+            ui_port=ui_port
         )
     except KeyboardInterrupt:
         console.print("\n[yellow]UI server stopped[/yellow]")
     except Exception as e:
         console.print(f"\n[red]Error launching UI:[/red] {e}")
         console.print("\n[yellow]Troubleshooting:[/yellow]")
-        console.print("• Check if MLflow is installed: [cyan]pip show mlflow[/cyan]")
-        console.print("• Try a different port: [cyan]mltrack ui --port 5001[/cyan]")
-        console.print("• Check MLflow logs for more details")
+        if modern:
+            console.print("• Check if Node.js is installed: [cyan]node --version[/cyan]")
+            console.print("• Check if npm is installed: [cyan]npm --version[/cyan]")
+            console.print("• Try the classic UI: [cyan]mltrack ui[/cyan]")
+        else:
+            console.print("• Check if MLflow is installed: [cyan]pip show mlflow[/cyan]")
+            console.print("• Try a different port: [cyan]mltrack ui --port 5001[/cyan]")
+            console.print("• Check MLflow logs for more details")
 
 
 def main():
