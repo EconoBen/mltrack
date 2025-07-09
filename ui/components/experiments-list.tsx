@@ -28,6 +28,9 @@ export function ExperimentsList() {
       <div className="text-center py-8">
         <Folder className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
         <p className="text-sm text-muted-foreground">No experiments found</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Make sure MLflow server is running
+        </p>
         <Button
           variant="outline"
           size="sm"

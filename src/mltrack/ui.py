@@ -32,12 +32,33 @@ def launch_mlflow_ui(port: int = 5000, host: str = "127.0.0.1"):
         click.echo("\n✋ MLflow UI stopped")
 
 
-def launch_modern_ui(mlflow_port: int = 5000, ui_port: int = 3000):
-    """Launch the modern React/Next.js UI.
+def check_port_available(port: int) -> bool:
+    """Check if a port is available."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('', port))
+            return True
+        except:
+            return False
+
+
+def find_available_port(start_port: int, max_attempts: int = 10) -> int:
+    """Find an available port starting from start_port."""
+    for i in range(max_attempts):
+        port = start_port + i
+        if check_port_available(port):
+            return port
+    raise RuntimeError(f"Could not find available port in range {start_port}-{start_port + max_attempts}")
+
+
+def launch_modern_ui(mlflow_port: int = 5000, ui_port: int = 3000, config: Optional[MLTrackConfig] = None):
+    """Launch the modern React/Next.js UI with MLflow server.
     
     Args:
         mlflow_port: Port where MLflow server is running (default: 5000)
         ui_port: Port to run the modern UI on (default: 3000)
+        config: MLTrack configuration
     """
     ui_path = os.path.join(os.path.dirname(__file__), "..", "..", "ui")
     
@@ -52,19 +73,95 @@ def launch_modern_ui(mlflow_port: int = 5000, ui_port: int = 3000):
         click.echo("📦 Installing UI dependencies...")
         subprocess.run(["npm", "install"], cwd=ui_path, check=True)
     
+    # Check if MLflow port is available, find alternative if not
+    actual_mlflow_port = mlflow_port
+    if not check_port_available(mlflow_port):
+        # Check if MLflow is actually running on this port
+        import requests
+        try:
+            response = requests.get(f"http://localhost:{mlflow_port}/health", timeout=1)
+            if response.status_code == 200:
+                click.echo(f"✅ MLflow server already running on port {mlflow_port}")
+                mlflow_process = None
+            else:
+                raise Exception("Port in use but not MLflow")
+        except:
+            # Port is in use but not by MLflow, find another port
+            actual_mlflow_port = find_available_port(mlflow_port + 1)
+            click.echo(f"⚠️  Port {mlflow_port} is in use, using port {actual_mlflow_port} for MLflow")
+            mlflow_port = actual_mlflow_port
+    
+    # Start MLflow server if needed
+    mlflow_process = None
+    if check_port_available(mlflow_port):
+        click.echo(f"🚀 Starting MLflow server on port {mlflow_port}...")
+        
+        # Set up MLflow environment
+        import mlflow
+        if config:
+            mlflow.set_tracking_uri(config.tracking_uri)
+        
+        # Start MLflow server in background
+        mlflow_cmd = [
+            sys.executable, "-m", "mlflow", "ui",
+            "--host", "127.0.0.1",
+            "--port", str(mlflow_port),
+            "--serve-artifacts"
+        ]
+        mlflow_process = subprocess.Popen(
+            mlflow_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        # Wait a bit for MLflow to start
+        click.echo("   Waiting for MLflow to start...")
+        time.sleep(3)
+        
+        # Check if MLflow started successfully
+        if mlflow_process.poll() is not None:
+            click.echo("❌ Failed to start MLflow server")
+            stderr = mlflow_process.stderr.read().decode() if mlflow_process.stderr else ""
+            if stderr:
+                click.echo(f"   Error: {stderr}")
+            return
+    
+    # Check if UI port is available
+    actual_ui_port = ui_port
+    if not check_port_available(ui_port):
+        actual_ui_port = find_available_port(ui_port + 1)
+        click.echo(f"⚠️  Port {ui_port} is in use, using port {actual_ui_port} for UI")
+    
     # Set environment variable for MLflow server
     env = os.environ.copy()
     env["MLFLOW_TRACKING_URI"] = f"http://localhost:{mlflow_port}"
+    env["PORT"] = str(actual_ui_port)
     
     click.echo("🎨 Launching modern UI...")
-    click.echo(f"   Access at: http://localhost:{ui_port}")
-    click.echo(f"   MLflow server: http://localhost:{mlflow_port}")
+    click.echo(f"   Access at: http://localhost:{actual_ui_port}")
+    click.echo(f"   MLflow API: http://localhost:{mlflow_port}")
     click.echo("   Press Ctrl+C to stop")
     
     try:
-        subprocess.run(["npm", "run", "dev"], cwd=ui_path, env=env)
+        # Start the Next.js dev server
+        ui_cmd = ["npm", "run", "dev", "--", "--port", str(actual_ui_port)]
+        ui_process = subprocess.Popen(ui_cmd, cwd=ui_path, env=env)
+        
+        # Wait for processes
+        ui_process.wait()
     except KeyboardInterrupt:
-        click.echo("\n✋ Modern UI stopped")
+        click.echo("\n✋ Shutting down...")
+        
+        # Clean up processes
+        if ui_process and ui_process.poll() is None:
+            ui_process.terminate()
+            ui_process.wait()
+        
+        if mlflow_process and mlflow_process.poll() is None:
+            mlflow_process.terminate()
+            mlflow_process.wait()
+            
+        click.echo("✅ All services stopped")
 
 
 def launch_ui(
@@ -91,8 +188,8 @@ def launch_ui(
     mlflow.set_tracking_uri(config.tracking_uri)
     
     if modern:
-        # Launch modern UI
-        launch_modern_ui(mlflow_port=port, ui_port=ui_port)
+        # Launch modern UI (which also starts MLflow server)
+        launch_modern_ui(mlflow_port=port, ui_port=ui_port, config=config)
     else:
         # Launch classic MLflow UI
         launch_mlflow_ui(port=port, host=host)

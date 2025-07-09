@@ -7,30 +7,34 @@ const MLFLOW_TOKEN = process.env.MLFLOW_TRACKING_TOKEN;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'GET');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'GET');
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'POST');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'POST');
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'PUT');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'PUT');
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'DELETE');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'DELETE');
 }
 
 async function handleRequest(
@@ -77,7 +81,23 @@ async function handleRequest(
     const response = await fetch(url.toString(), options);
 
     // Get the response data
-    const data = await response.json();
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.error('Failed to parse JSON:', text);
+          data = { error: 'Invalid JSON response from MLflow' };
+        }
+      } else {
+        data = {};
+      }
+    } else {
+      data = { error: 'Non-JSON response from MLflow' };
+    }
 
     // Return the response with CORS headers
     return NextResponse.json(data, {
@@ -90,9 +110,36 @@ async function handleRequest(
     });
   } catch (error) {
     console.error('MLflow proxy error:', error);
+    
+    // Check if it's a connection error
+    if (error instanceof Error && error.message.includes('fetch failed')) {
+      return NextResponse.json(
+        { 
+          error: 'Cannot connect to MLflow server',
+          message: `Please ensure MLflow is running at ${MLFLOW_BASE_URL}`,
+          suggestion: 'Run "mltrack ui" (without --modern) in another terminal to start MLflow server'
+        },
+        { 
+          status: 503,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to proxy request to MLflow' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
 }
