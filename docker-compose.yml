@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  aim:
+    image: aimstack/aim:latest
+    container_name: mltrack-aim
+    ports:
+      - "43800:43800"
+    volumes:
+      - ./.aim:/aim
+      - ./mlruns:/mlruns
+    environment:
+      - MLFLOW_TRACKING_URI=file:///mlruns
+    command: >
+      bash -c "
+      aim init &&
+      aimlflow sync --mlflow-tracking-uri=file:///mlruns --aim-repo=/aim --sync-interval=10 &
+      aim up --host 0.0.0.0
+      "
+    restart: unless-stopped
+
+  # Optional: MLflow server for remote tracking
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mltrack-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlruns
+    command: >
+      mlflow server 
+      --backend-store-uri file:///mlruns
+      --default-artifact-root file:///mlruns
+      --host 0.0.0.0
+    restart: unless-stopped

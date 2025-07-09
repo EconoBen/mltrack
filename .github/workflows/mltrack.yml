@@ -1,0 +1,171 @@
+name: MLTrack Experiment Tracking
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: 'Command to run with mltrack'
+        required: true
+        type: string
+      name:
+        description: 'Name for the MLflow run'
+        required: false
+        type: string
+      tags:
+        description: 'Comma-separated tags (key=value)'
+        required: false
+        type: string
+      python-version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.11'
+      working-directory:
+        description: 'Working directory'
+        required: false
+        type: string
+        default: '.'
+
+jobs:
+  track-experiment:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install ${{ inputs.python-version }}
+    
+    - name: Install dependencies
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        uv venv
+        uv pip install -r requirements.txt
+        uv pip install mltrack
+    
+    - name: Run experiment with mltrack
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI || 'file://./mlruns' }}
+      run: |
+        # Build command
+        COMMAND="uv run mltrack run ${{ inputs.command }}"
+        
+        # Add optional parameters
+        if [ -n "${{ inputs.name }}" ]; then
+          COMMAND="$COMMAND --name '${{ inputs.name }}'"
+        fi
+        
+        if [ -n "${{ inputs.tags }}" ]; then
+          COMMAND="$COMMAND --tags '${{ inputs.tags }}'"
+        fi
+        
+        # Execute
+        echo "Running: $COMMAND"
+        eval $COMMAND
+    
+    - name: Upload MLflow artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-runs
+        path: ${{ inputs.working-directory }}/mlruns/
+        retention-days: 30
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Find the latest run
+          const mlrunsPath = '${{ inputs.working-directory }}/mlruns';
+          
+          // Get experiment directories
+          const experiments = fs.readdirSync(mlrunsPath)
+            .filter(f => f !== '.trash' && fs.statSync(path.join(mlrunsPath, f)).isDirectory());
+          
+          if (experiments.length === 0) {
+            console.log('No experiments found');
+            return;
+          }
+          
+          // Get latest run from first experiment
+          const expPath = path.join(mlrunsPath, experiments[0]);
+          const runs = fs.readdirSync(expPath)
+            .filter(f => fs.statSync(path.join(expPath, f)).isDirectory())
+            .sort((a, b) => {
+              const aTime = fs.statSync(path.join(expPath, a)).mtime;
+              const bTime = fs.statSync(path.join(expPath, b)).mtime;
+              return bTime - aTime;
+            });
+          
+          if (runs.length === 0) {
+            console.log('No runs found');
+            return;
+          }
+          
+          const latestRun = runs[0];
+          const runPath = path.join(expPath, latestRun);
+          
+          // Read metrics
+          const metricsPath = path.join(runPath, 'metrics');
+          let metrics = {};
+          if (fs.existsSync(metricsPath)) {
+            const metricFiles = fs.readdirSync(metricsPath);
+            for (const file of metricFiles) {
+              const content = fs.readFileSync(path.join(metricsPath, file), 'utf8');
+              const lines = content.trim().split('\n');
+              const lastLine = lines[lines.length - 1];
+              const [timestamp, value] = lastLine.split(' ');
+              metrics[file] = parseFloat(value);
+            }
+          }
+          
+          // Read parameters
+          const paramsPath = path.join(runPath, 'params');
+          let params = {};
+          if (fs.existsSync(paramsPath)) {
+            const paramFiles = fs.readdirSync(paramsPath);
+            for (const file of paramFiles) {
+              const content = fs.readFileSync(path.join(paramsPath, file), 'utf8').trim();
+              params[file] = content;
+            }
+          }
+          
+          // Build comment
+          let comment = `## 🚀 MLTrack Experiment Results\n\n`;
+          comment += `**Run ID:** ${latestRun.substring(0, 8)}\n`;
+          comment += `**Command:** \`${{ inputs.command }}\`\n`;
+          
+          if (Object.keys(metrics).length > 0) {
+            comment += `\n### 📊 Metrics\n\n`;
+            comment += `| Metric | Value |\n|--------|-------|\n`;
+            for (const [key, value] of Object.entries(metrics)) {
+              comment += `| ${key} | ${value.toFixed(4)} |\n`;
+            }
+          }
+          
+          if (Object.keys(params).length > 0) {
+            comment += `\n### ⚙️ Parameters\n\n`;
+            comment += `| Parameter | Value |\n|-----------|-------|\n`;
+            for (const [key, value] of Object.entries(params)) {
+              comment += `| ${key} | ${value} |\n`;
+            }
+          }
+          
+          comment += `\n---\n*Tracked with [mltrack](https://github.com/yourorg/mltrack)*`;
+          
+          // Post comment
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

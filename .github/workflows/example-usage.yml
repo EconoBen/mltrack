@@ -1,0 +1,19 @@
+name: Example ML Training
+
+on:
+  pull_request:
+    paths:
+      - 'models/**'
+      - 'src/**'
+      - 'requirements.txt'
+  push:
+    branches: [main]
+
+jobs:
+  train-model:
+    uses: ./.github/workflows/mltrack.yml
+    with:
+      command: python train.py --epochs 10
+      name: pr-${{ github.event.pull_request.number }}-training
+      tags: 'branch=${{ github.ref_name }},triggered_by=${{ github.actor }}'
+      python-version: '3.11'

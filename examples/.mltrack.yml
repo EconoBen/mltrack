@@ -1,0 +1,27 @@
+# Example mltrack configuration
+experiment_name: mltrack-examples/demos
+
+# Team settings (optional)
+team_name: ml-team
+
+# Default tags applied to all runs
+default_tags:
+  project: mltrack-demo
+  environment: development
+
+# MLflow tracking server (optional)
+# tracking_uri: http://your-mlflow-server:5000
+
+# Notifications (optional)
+# slack_webhook: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+
+# Environment preferences
+warn_non_uv: true
+require_uv: false
+
+# Auto-logging settings
+auto_log_git: true
+auto_log_pip: true
+auto_log_conda: true
+auto_log_system: true
+auto_detect_frameworks: true

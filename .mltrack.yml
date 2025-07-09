@@ -1,0 +1,6 @@
+experiment_name: ml-team/mltrack/experiments
+auto_log_git: true
+auto_log_pip: true
+auto_detect_frameworks: true
+warn_non_uv: true
+team_name: ml-team
