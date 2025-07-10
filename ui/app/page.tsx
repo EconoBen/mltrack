@@ -6,9 +6,11 @@ import { ExperimentsList } from '@/components/experiments-list';
 import { RunsTable } from '@/components/runs-table';
 import { MetricsChart } from '@/components/metrics-chart';
 import { LLMCostDashboard } from '@/components/llm-cost-dashboard';
+import { RunComparison } from '@/components/run-comparison';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, Brain, DollarSign, BarChart } from 'lucide-react';
+import { Activity, Brain, DollarSign, BarChart, GitCompare } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function DashboardPage() {
   const { initialize, selectedExperiment } = useMLflowStore();
@@ -26,9 +28,12 @@ export default function DashboardPage() {
               <Activity className="h-6 w-6 text-primary" />
               <h1 className="text-2xl font-bold">MLtrack Dashboard</h1>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Modern UI for MLflow Experiment Tracking
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                Modern UI for MLflow Experiment Tracking
+              </p>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
@@ -57,6 +62,10 @@ export default function DashboardPage() {
                     <BarChart className="h-4 w-4" />
                     Runs
                   </TabsTrigger>
+                  <TabsTrigger value="compare" className="flex items-center gap-2">
+                    <GitCompare className="h-4 w-4" />
+                    Compare
+                  </TabsTrigger>
                   <TabsTrigger value="metrics" className="flex items-center gap-2">
                     <Activity className="h-4 w-4" />
                     Metrics
@@ -83,6 +92,10 @@ export default function DashboardPage() {
                       <RunsTable />
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="compare" className="space-y-4">
+                  <RunComparison />
                 </TabsContent>
 
                 <TabsContent value="metrics" className="space-y-4">
