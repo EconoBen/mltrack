@@ -109,6 +109,14 @@ mltrack demo
   - Multi-turn conversation support
   - Streaming response support
 
+### 📦 Model Registry
+- **NEW**: Register trained models with versioning and staging
+- S3 backend support for model storage (optional)
+- Model stage management (staging → production → archived)
+- Generate Python code to load and use models
+- Track model lineage and metadata
+- Modern UI for model management
+
 ### 👥 Team Features
 - Shared MLflow server configuration
 - Team namespaces for experiments
@@ -225,6 +233,67 @@ mltrack automatically estimates costs for popular LLM models:
 # - llm.cost.total (total cost)
 # - llm.cost.cumulative (running total)
 ```
+
+## Model Registry 📦
+
+mltrack includes a powerful model registry for managing your trained models:
+
+### Register a Model
+
+```bash
+# Register a model from a completed run
+mltrack models register --run-id abc123 --name my-model --stage staging
+
+# With S3 storage
+export MLTRACK_S3_BUCKET=my-model-bucket
+mltrack models register --run-id abc123 --name my-model --description "Customer churn predictor v2"
+```
+
+### Manage Models
+
+```bash
+# List all models
+mltrack models list
+
+# List production models only
+mltrack models list --stage production
+
+# Get model details
+mltrack models info my-model
+
+# Generate loading code
+mltrack models load-code my-model > load_model.py
+
+# Promote to production
+mltrack models transition my-model v20240115_abc123 production
+```
+
+### Load Models in Code
+
+```python
+from mltrack import ModelRegistry
+
+# Initialize registry
+registry = ModelRegistry()
+
+# Load latest version
+model = registry.load_model("my-model")
+
+# Load specific version
+model = registry.load_model("my-model", version="v20240115_abc123")
+
+# Make predictions
+predictions = model.predict(data)
+```
+
+### Modern UI Model Management
+
+The modern UI includes a dedicated Models tab where you can:
+- Browse all registered models
+- View model metrics and parameters
+- Transition models between stages
+- Generate and copy loading code
+- Track model lineage
 
 ## Advanced Usage
 
