@@ -1,6 +1,6 @@
 'use client';
 
-import { useRuns } from '@/lib/hooks/use-mlflow';
+import { useRuns, useExperiments } from '@/lib/hooks/use-mlflow';
 import { useMLflowStore } from '@/lib/store/mlflow-store';
 import {
   Table,
@@ -13,8 +13,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, Clock, Play } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Play, Download, FileJson } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { exportRunsToCSV, exportExperimentSummary } from '@/lib/export-utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const StatusIcon = {
   FINISHED: CheckCircle,
@@ -35,6 +42,11 @@ export function RunsTable() {
   const { data: runs, isLoading } = useRuns(
     selectedExperiment ? [selectedExperiment] : []
   );
+  const { data: experiments } = useExperiments();
+  
+  const currentExperiment = experiments?.find(
+    exp => exp.experiment_id === selectedExperiment
+  );
 
   if (isLoading) {
     return (
@@ -54,9 +66,45 @@ export function RunsTable() {
     );
   }
 
+  const handleExportCSV = () => {
+    if (runs && currentExperiment) {
+      exportRunsToCSV(runs, currentExperiment.name);
+    }
+  };
+
+  const handleExportJSON = () => {
+    if (runs && currentExperiment) {
+      exportExperimentSummary(currentExperiment, runs);
+    }
+  };
+
   return (
-    <div className="rounded-md border">
-      <Table>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          {runs.length} runs found
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={handleExportCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportJSON}>
+              <FileJson className="h-4 w-4 mr-2" />
+              Export as JSON
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="rounded-md border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Run ID</TableHead>
@@ -130,6 +178,7 @@ export function RunsTable() {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
