@@ -7,9 +7,10 @@ import { RunsTable } from '@/components/runs-table';
 import { MetricsChart } from '@/components/metrics-chart';
 import { LLMCostDashboard } from '@/components/llm-cost-dashboard';
 import { RunComparison } from '@/components/run-comparison';
+import { ModelRegistry } from '@/components/model-registry';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, Brain, DollarSign, BarChart, GitCompare } from 'lucide-react';
+import { Activity, Brain, DollarSign, BarChart, GitCompare, Package } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function DashboardPage() {
@@ -74,6 +75,10 @@ export default function DashboardPage() {
                     <DollarSign className="h-4 w-4" />
                     LLM Costs
                   </TabsTrigger>
+                  <TabsTrigger value="models" className="flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Models
+                  </TabsTrigger>
                   <TabsTrigger value="insights" className="flex items-center gap-2">
                     <Brain className="h-4 w-4" />
                     Insights
@@ -114,6 +119,10 @@ export default function DashboardPage() {
 
                 <TabsContent value="llm-costs" className="space-y-4">
                   <LLMCostDashboard />
+                </TabsContent>
+
+                <TabsContent value="models" className="space-y-4">
+                  <ModelRegistry />
                 </TabsContent>
 
                 <TabsContent value="insights" className="space-y-4">

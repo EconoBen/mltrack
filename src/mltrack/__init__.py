@@ -10,6 +10,7 @@ from mltrack.llm import (
     LLMRequest,
     LLMResponse,
 )
+from mltrack.model_registry import ModelRegistry
 
 __all__ = [
     "track",
@@ -23,4 +24,6 @@ __all__ = [
     "LLMMetrics",
     "LLMRequest",
     "LLMResponse",
+    # Model registry
+    "ModelRegistry",
 ]

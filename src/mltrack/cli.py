@@ -408,6 +408,196 @@ def ui(port: int, host: str, modern: bool, ui_port: int):
             console.print("• Check MLflow logs for more details")
 
 
+@cli.group()
+def models():
+    """Model registry commands."""
+    pass
+
+
+@models.command(name="register")
+@click.option("--run-id", required=True, help="MLflow run ID containing the model")
+@click.option("--name", required=True, help="Name for the registered model")
+@click.option("--path", default="model", help="Path to model in run artifacts (default: model)")
+@click.option("--stage", default="staging", type=click.Choice(["staging", "production", "archived"]))
+@click.option("--description", help="Model description")
+@click.option("--s3-bucket", envvar="MLTRACK_S3_BUCKET", help="S3 bucket for model storage")
+def register(run_id: str, name: str, path: str, stage: str, description: Optional[str], s3_bucket: Optional[str]):
+    """Register a model from an MLflow run."""
+    from mltrack.model_registry import ModelRegistry
+    
+    console.print(f"\n[bold]Registering model from run {run_id}...[/bold]")
+    
+    try:
+        registry = ModelRegistry(s3_bucket=s3_bucket)
+        
+        # Register the model
+        model_info = registry.register_model(
+            run_id=run_id,
+            model_name=name,
+            model_path=path,
+            stage=stage,
+            description=description
+        )
+        
+        console.print(f"\n[green]✅ Model registered successfully![/green]")
+        console.print(f"Name: [cyan]{model_info['model_name']}[/cyan]")
+        console.print(f"Version: [cyan]{model_info['version']}[/cyan]")
+        console.print(f"Stage: [cyan]{model_info['stage']}[/cyan]")
+        
+        if model_info.get("s3_location"):
+            console.print(f"S3 Location: [dim]{model_info['s3_location']}[/dim]")
+        
+        console.print("\n[bold]Loading code:[/bold]")
+        console.print(f"[dim]from mltrack import ModelRegistry[/dim]")
+        console.print(f"[dim]registry = ModelRegistry()[/dim]")
+        console.print(f"[dim]model = registry.load_model('{name}', '{model_info['version']}')[/dim]")
+        
+    except Exception as e:
+        console.print(f"[red]Error registering model:[/red] {e}")
+
+
+@models.command(name="list")
+@click.option("--stage", type=click.Choice(["staging", "production", "archived"]), help="Filter by stage")
+def list_models(stage: Optional[str]):
+    """List registered models."""
+    from mltrack.model_registry import ModelRegistry
+    
+    try:
+        registry = ModelRegistry()
+        models = registry.list_models(stage=stage)
+        
+        if not models:
+            console.print("[yellow]No models found in registry[/yellow]")
+            return
+        
+        # Create table
+        table = Table(title="Registered Models")
+        table.add_column("Name", style="cyan")
+        table.add_column("Version", style="green")
+        table.add_column("Stage", style="yellow")
+        table.add_column("Registered", style="dim")
+        table.add_column("Framework", style="magenta")
+        
+        for model in models:
+            table.add_row(
+                model.get("model_name", ""),
+                model.get("version", ""),
+                model.get("stage", ""),
+                model.get("registered_at", "")[:19],  # Truncate timestamp
+                model.get("framework", "unknown")
+            )
+        
+        console.print(table)
+        
+    except Exception as e:
+        console.print(f"[red]Error listing models:[/red] {e}")
+
+
+@models.command(name="info")
+@click.argument("model_name")
+@click.option("--version", help="Specific version (latest if not specified)")
+def model_info(model_name: str, version: Optional[str]):
+    """Show detailed model information."""
+    from mltrack.model_registry import ModelRegistry
+    
+    try:
+        registry = ModelRegistry()
+        model = registry.get_model(model_name, version)
+        
+        console.print(f"\n[bold]Model: {model['model_name']}[/bold]")
+        console.print(f"Version: [green]{model['version']}[/green]")
+        console.print(f"Stage: [yellow]{model['stage']}[/yellow]")
+        console.print(f"Registered: {model['registered_at']}")
+        
+        if model.get("description"):
+            console.print(f"\nDescription: {model['description']}")
+        
+        # Metrics
+        if model.get("metrics"):
+            console.print("\n[bold]Training Metrics:[/bold]")
+            for key, value in model["metrics"].items():
+                console.print(f"  {key}: {value:.4f}" if isinstance(value, float) else f"  {key}: {value}")
+        
+        # Parameters
+        if model.get("params"):
+            console.print("\n[bold]Parameters:[/bold]")
+            for key, value in model["params"].items():
+                console.print(f"  {key}: {value}")
+        
+        # S3 location
+        if model.get("s3_location"):
+            console.print(f"\n[bold]S3 Location:[/bold] {model['s3_location']}")
+        
+        # Git info
+        if model.get("git_commit"):
+            console.print(f"\n[bold]Git Commit:[/bold] {model['git_commit']}")
+        
+    except Exception as e:
+        console.print(f"[red]Error getting model info:[/red] {e}")
+
+
+@models.command(name="load-code")
+@click.argument("model_name")
+@click.option("--version", help="Specific version (latest if not specified)")
+@click.option("--output", "-o", type=click.Path(), help="Save code to file")
+def load_code(model_name: str, version: Optional[str], output: Optional[str]):
+    """Generate code to load a model."""
+    from mltrack.model_registry import ModelRegistry
+    
+    try:
+        registry = ModelRegistry()
+        code = registry.generate_loading_code(model_name, version)
+        
+        if output:
+            with open(output, "w") as f:
+                f.write(code)
+            console.print(f"[green]✅ Code saved to {output}[/green]")
+        else:
+            syntax = Syntax(code, "python", theme="monokai", line_numbers=True)
+            console.print(Panel(syntax, title=f"Loading code for {model_name}", border_style="cyan"))
+        
+    except Exception as e:
+        console.print(f"[red]Error generating code:[/red] {e}")
+
+
+@models.command(name="transition")
+@click.argument("model_name")
+@click.argument("version")
+@click.argument("stage", type=click.Choice(["staging", "production", "archived"]))
+@click.option("--archive-existing/--no-archive-existing", default=True, 
+              help="Archive existing production models when promoting to production")
+def transition(model_name: str, version: str, stage: str, archive_existing: bool):
+    """Transition a model to a different stage."""
+    from mltrack.model_registry import ModelRegistry
+    
+    try:
+        registry = ModelRegistry()
+        
+        # Confirm if promoting to production
+        if stage == "production":
+            console.print(f"\n[yellow]⚠️  Promoting model to production[/yellow]")
+            console.print(f"Model: {model_name}")
+            console.print(f"Version: {version}")
+            if not click.confirm("Are you sure?"):
+                console.print("[yellow]Cancelled[/yellow]")
+                return
+        
+        updated = registry.transition_model_stage(
+            model_name=model_name,
+            version=version,
+            stage=stage,
+            archive_existing=archive_existing
+        )
+        
+        console.print(f"\n[green]✅ Model transitioned to {stage}[/green]")
+        console.print(f"Model: {updated['model_name']}")
+        console.print(f"Version: {updated['version']}")
+        console.print(f"New stage: {updated['stage']}")
+        
+    except Exception as e:
+        console.print(f"[red]Error transitioning model:[/red] {e}")
+
+
 def main():
     """Main entry point for the CLI."""
     cli()
