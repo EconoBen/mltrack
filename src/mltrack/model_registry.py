@@ -10,6 +10,7 @@ import hashlib
 import pickle
 import joblib
 import cloudpickle
+from functools import lru_cache
 
 import mlflow
 from mlflow.tracking import MlflowClient
@@ -18,6 +19,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from mltrack.config import MLTrackConfig
+from mltrack.templates.model_loader import ModelLoaderTemplate
 
 
 class ModelRegistry:
@@ -139,7 +141,10 @@ class ModelRegistry:
             "git_commit": run.data.tags.get("mlflow.source.git.commit", ""),
             "user": run.data.tags.get("mlflow.user", ""),
             "framework": run.data.tags.get("mlflow.source.type", ""),
-            "custom_metadata": metadata or {}
+            "custom_metadata": metadata or {},
+            # Model type and task detection (will be enhanced later)
+            "model_type": run.data.tags.get("mltrack.algorithm", "unknown"),
+            "task_type": run.data.tags.get("mltrack.task", "unknown")
         }
         
         # Generate model version
@@ -148,6 +153,11 @@ class ModelRegistry:
         ).hexdigest()[:8]
         model_version = f"v{datetime.utcnow().strftime('%Y%m%d')}_{version_hash}"
         model_metadata["version"] = model_version
+        
+        # Generate and cache loading code
+        loading_code = ModelLoaderTemplate.generate_code(model_metadata)
+        model_metadata["loading_code_cached"] = loading_code
+        model_metadata["loading_code_generated_at"] = datetime.utcnow().isoformat()
         
         # Download model artifacts from MLflow
         local_path = Path(tempfile.mkdtemp()) / "model"
@@ -294,6 +304,7 @@ class ModelRegistry:
         
         return mlflow.pyfunc.load_model(f"runs:/{run_id}/{model_path}")
     
+    @lru_cache(maxsize=128)
     def generate_loading_code(
         self,
         model_name: str,
@@ -301,6 +312,8 @@ class ModelRegistry:
         include_requirements: bool = True
     ) -> str:
         """Generate code to load and use the model.
+        
+        Uses cached code if available, otherwise generates new code.
         
         Args:
             model_name: Model name
@@ -312,55 +325,31 @@ class ModelRegistry:
         """
         model_info = self.get_model(model_name, version)
         
-        code = f'''"""
-Auto-generated code to load and use model: {model_name}
-Version: {model_info.get("version", "unknown")}
-Registered: {model_info.get("registered_at", "unknown")}
-"""
-
-import mlflow
-from mltrack.model_registry import ModelRegistry
-
-# Initialize registry
-registry = ModelRegistry()
-
-# Load model
-model = registry.load_model(
-    model_name="{model_name}",
-    version="{model_info.get("version", "latest")}"
-)
-
-# Example usage
-def predict(data):
-    """Make predictions with the loaded model.
-    
-    Args:
-        data: Input data (format depends on model type)
+        # Check if we have cached loading code
+        if "loading_code_cached" in model_info:
+            # Return cached code directly
+            return model_info["loading_code_cached"]
         
-    Returns:
-        Model predictions
-    """
-    return model.predict(data)
-
-# Model information
-print(f"Model: {model_name}")
-print(f"Version: {model_info.get("version", "unknown")}")
-print(f"Stage: {model_info.get("stage", "unknown")}")
-print(f"Framework: {model_info.get("framework", "unknown")}")
-
-# Metrics from training
-metrics = {json.dumps(model_info.get("metrics", {}), indent=2)}
-print(f"Training metrics: {{metrics}}")
-
-# Parameters used
-params = {json.dumps(model_info.get("params", {}), indent=2)}
-print(f"Training parameters: {{params}}")
-'''
+        # Generate new code using template system
+        # This is for backward compatibility with models registered before caching
+        code = ModelLoaderTemplate.generate_code(model_info, include_requirements)
         
-        if include_requirements:
-            requirements = model_info.get("custom_metadata", {}).get("requirements", [])
-            if requirements:
-                code += f'\n# Requirements:\n# pip install {" ".join(requirements)}\n'
+        # Update the registry with cached code for future use
+        registry_file = Path.home() / ".mltrack" / "registry" / f"{model_name}.json"
+        if registry_file.exists():
+            with open(registry_file) as f:
+                data = json.load(f)
+            
+            # Update the specific model version with cached code
+            for model in data["models"]:
+                if model.get("version") == model_info.get("version"):
+                    model["loading_code_cached"] = code
+                    model["loading_code_generated_at"] = datetime.utcnow().isoformat()
+                    break
+            
+            # Save updated registry
+            with open(registry_file, "w") as f:
+                json.dump(data, f, indent=2)
         
         return code
     

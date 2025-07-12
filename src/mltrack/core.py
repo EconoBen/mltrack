@@ -20,6 +20,7 @@ from mltrack.detectors import FrameworkDetector, get_model_info
 from mltrack.git_utils import get_git_tags, get_git_info, create_git_commit_url
 from mltrack.utils import get_pip_requirements, get_conda_environment, get_uv_info, get_pyproject_toml
 from mltrack.llm import LLMTracker
+from mltrack.introspection import ModelIntrospector
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +214,16 @@ class MLTracker:
                             # Try to log model
                             if hasattr(result, "fit") or hasattr(result, "predict"):
                                 try:
+                                    # Use ModelIntrospector to detect model type and generate tags
+                                    introspector_tags = ModelIntrospector.generate_tags(result)
+                                    for tag_key, tag_value in introspector_tags.items():
+                                        mlflow.set_tag(tag_key, tag_value)
+                                    
+                                    # Also log detailed metadata
+                                    model_metadata = ModelIntrospector.extract_model_metadata(result)
+                                    mlflow.log_dict(model_metadata, "model_metadata.json")
+                                    
+                                    # Log traditional model info as well
                                     model_info = get_model_info(result)
                                     mlflow.log_dict(model_info, "model_info.json")
                                 except Exception as e:

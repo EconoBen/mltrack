@@ -10,6 +10,8 @@ from dataclasses import dataclass, asdict
 
 import mlflow
 
+from mltrack.introspection import ModelIntrospector
+
 logger = logging.getLogger(__name__)
 
 # Type variable for generic function types
@@ -115,8 +117,12 @@ def track_llm(
             # Determine run name
             run_name = name or f"llm-{func.__name__}"
             
-            # Prepare tags
-            run_tags = {"mltrack.type": "llm"}
+            # Prepare tags with hierarchical structure
+            run_tags = {
+                "mltrack.type": "llm",  # Backward compatibility
+                "mltrack.category": "llm",
+                "mltrack.task": "generation"
+            }
             if tags:
                 run_tags.update(tags)
             
@@ -134,6 +140,16 @@ def track_llm(
                         for key, value in llm_params.items():
                             if value is not None:
                                 mlflow.log_param(f"llm.{key}", value)
+                    
+                    # Detect provider and set framework tags
+                    provider = detect_provider(func, args, kwargs)
+                    if provider:
+                        mlflow.set_tag("mltrack.framework", provider)
+                        mlflow.set_tag("mltrack.provider", provider)
+                    
+                    # Set model algorithm tag if available
+                    if llm_params.get("model"):
+                        mlflow.set_tag("mltrack.algorithm", llm_params["model"])
                     
                     # Log inputs
                     if log_inputs:
