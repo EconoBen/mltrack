@@ -45,7 +45,7 @@ async function handleRequest(
   try {
     // Construct the MLflow API URL
     const apiPath = path.join('/');
-    const url = new URL(`/api/2.0/mlflow/${apiPath}`, MLFLOW_BASE_URL);
+    const url = new URL(`/${apiPath}`, MLFLOW_BASE_URL);
     
     // Copy query parameters
     request.nextUrl.searchParams.forEach((value, key) => {

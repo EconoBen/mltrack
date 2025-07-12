@@ -46,8 +46,13 @@ export function RunComparison() {
   // Helper to get metric value with comparison
   const getMetricComparison = (metricKey: string) => {
     const values = selectedRunsData
-      .map(run => run.data.metrics[metricKey])
-      .filter(val => val !== undefined);
+      .map(run => {
+        const rawValue = run.data.metrics[metricKey];
+        return typeof rawValue === 'object' && rawValue?.value !== undefined 
+          ? rawValue.value 
+          : rawValue;
+      })
+      .filter(val => val !== undefined && typeof val === 'number');
     
     if (values.length === 0) return null;
     
@@ -199,7 +204,10 @@ export function RunComparison() {
                               {metricKey}
                             </TableCell>
                             {selectedRunsData.map(run => {
-                              const value = run.data.metrics[metricKey];
+                              const rawValue = run.data.metrics[metricKey];
+                              const value = typeof rawValue === 'object' && rawValue?.value !== undefined 
+                                ? rawValue.value 
+                                : rawValue;
                               const isMin = comparison && value === comparison.min;
                               const isMax = comparison && value === comparison.max;
                               

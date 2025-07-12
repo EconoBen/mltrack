@@ -12,6 +12,9 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from mltrack import track, track_llm_context, ModelRegistry
+import mlflow
+# Disable autolog to have control over model logging
+mlflow.sklearn.autolog(disable=True)
 from sklearn.datasets import make_classification, make_regression, load_digits
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingRegressor
@@ -78,8 +81,9 @@ def train_customer_churn_model():
     for name, value in metrics.items():
         mlflow.log_metric(name, value)
     
-    # Log parameters
-    mlflow.log_params(best_model.get_params())
+    # Log additional parameters (autolog handles the model params)
+    mlflow.log_param("grid_search_scoring", "f1")
+    mlflow.log_param("cv_folds", 3)
     
     # Log model
     mlflow.sklearn.log_model(best_model, "model")
@@ -133,7 +137,9 @@ def train_revenue_forecast_model():
     for name, value in metrics.items():
         mlflow.log_metric(name, value)
     
-    mlflow.log_params(model.get_params())
+    # Log custom parameters (autolog handles model params)
+    mlflow.log_param("forecast_type", "revenue")
+    mlflow.log_param("time_series_features", 20)
     mlflow.sklearn.log_model(model, "model")
     mlflow.set_tag("model_type", "revenue_forecast")
     mlflow.set_tag("created_date", set_random_date())
@@ -203,7 +209,6 @@ def train_fraud_detection_model():
     return best_model, {"best_model": best_name, "f1_score": best_score}
 
 
-@track_llm_context(name="customer-support-chatbot", model="gpt-4", provider="openai")
 def simulate_llm_customer_support():
     """Simulate customer support chatbot interactions."""
     print("💬 Simulating Customer Support Chatbot")
@@ -254,7 +259,6 @@ def simulate_llm_customer_support():
     return {"conversations": len(conversations), "total_cost": total_cost}
 
 
-@track_llm_context(name="code-review-assistant", model="claude-3-opus", provider="anthropic")
 def simulate_code_review_llm():
     """Simulate AI code review assistant."""
     print("🔍 Simulating Code Review Assistant")
@@ -307,8 +311,9 @@ def register_best_models():
     import mlflow.tracking
     client = mlflow.tracking.MlflowClient()
     
-    # Find experiments
-    experiments = client.search_experiments()
+    # Find experiments - filter out default
+    all_experiments = client.search_experiments()
+    experiments = [exp for exp in all_experiments if exp.name != "Default"]
     
     registry = ModelRegistry()
     
@@ -316,6 +321,7 @@ def register_best_models():
     model_configs = [
         {
             "name": "customer-churn-predictor",
+            "experiment_keyword": "customer-retention",
             "metric": "f1_score",
             "threshold": 0.7,
             "stage": "production",
@@ -323,6 +329,7 @@ def register_best_models():
         },
         {
             "name": "revenue-forecast-model",
+            "experiment_keyword": "revenue-forecasting",
             "metric": "r2_score",
             "threshold": 0.8,
             "stage": "staging",
@@ -330,37 +337,73 @@ def register_best_models():
         },
         {
             "name": "fraud-detection-ensemble",
-            "metric": "recall",
+            "experiment_keyword": "fraud-detection",
+            "metric": "best_f1_score",  # Using the best_f1_score logged in the main run
             "threshold": 0.85,
             "stage": "production",
             "description": "Ensemble model optimized for high recall in fraud detection"
         }
     ]
     
+    # Debug: print all experiments
+    print(f"\nFound {len(experiments)} experiments (excluding Default):")
+    for exp in experiments:
+        print(f"  - {exp.name} (ID: {exp.experiment_id})")
+    
     for config in model_configs:
-        # Find best run for this model type
+        # Find experiment by exact name
+        print(f"\nLooking for experiment '{config['experiment_keyword']}' for {config['name']}...")
+        matching_exp = None
+        
         for exp in experiments:
-            if config["name"].replace("-", "_") in exp.name:
-                runs = client.search_runs(
-                    experiment_ids=[exp.experiment_id],
-                    order_by=[f"metrics.{config['metric']} DESC"],
-                    max_results=1
-                )
+            if exp.name == config['experiment_keyword']:
+                matching_exp = exp
+                break
+        
+        if not matching_exp:
+            print(f"  ⚠️  Experiment '{config['experiment_keyword']}' not found")
+            continue
+            
+        print(f"  Found experiment: {matching_exp.name}")
+        
+        # Get runs from this experiment
+        runs = client.search_runs(
+            experiment_ids=[matching_exp.experiment_id],
+            order_by=[f"metrics.{config['metric']} DESC"],
+            max_results=5  # Get top 5 to debug
+        )
+        
+        print(f"  Found {len(runs)} runs in experiment")
+        
+        if runs:
+            # Try to find a run with a model
+            for i, run in enumerate(runs):
+                metric_value = run.data.metrics.get(config["metric"], 0)
+                print(f"    Run {i+1} has {config['metric']}: {metric_value:.3f}")
                 
-                if runs:
-                    run = runs[0]
-                    if run.data.metrics.get(config["metric"], 0) >= config["threshold"]:
-                        try:
-                            model_info = registry.register_model(
-                                run_id=run.info.run_id,
-                                model_name=config["name"],
-                                model_path="model",
-                                stage=config["stage"],
-                                description=config["description"]
-                            )
-                            print(f"✅ Registered {config['name']} (version: {model_info['version']})")
-                        except Exception as e:
-                            print(f"⚠️  Could not register {config['name']}: {e}")
+                # Check if this run has a model artifact
+                artifacts = client.list_artifacts(run.info.run_id)
+                has_model = any(artifact.path == "model" for artifact in artifacts)
+                
+                if has_model and metric_value > 0:
+                    try:
+                        print(f"    Registering model from run {run.info.run_id[:8]}...")
+                        model_info = registry.register_model(
+                            run_id=run.info.run_id,
+                            model_name=config["name"],
+                            model_path="model",
+                            stage=config["stage"],
+                            description=config["description"]
+                        )
+                        print(f"✅ Registered {config['name']} (version: {model_info['version']})")
+                        break
+                    except Exception as e:
+                        print(f"⚠️  Could not register from run {i+1}: {e}")
+                else:
+                    if not has_model:
+                        print(f"    Run {i+1} has no model artifact")
+        else:
+            print(f"  ⚠️  No runs found in experiment")
 
 
 def main():
@@ -409,13 +452,15 @@ def main():
     mlflow.set_experiment("llm-customer-support")
     for i in range(4):
         print(f"\nRun {i+1}/4 - Customer Support Chatbot")
-        simulate_llm_customer_support()
+        with track_llm_context(name="customer-support-chatbot", tags={"model": "gpt-4", "provider": "openai"}):
+            simulate_llm_customer_support()
         time.sleep(0.5)
     
     mlflow.set_experiment("llm-code-review")
     for i in range(3):
         print(f"\nRun {i+1}/3 - Code Review Assistant")
-        simulate_code_review_llm()
+        with track_llm_context(name="code-review-assistant", tags={"model": "claude-3-opus", "provider": "anthropic"}):
+            simulate_code_review_llm()
         time.sleep(0.5)
     
     # Register best models

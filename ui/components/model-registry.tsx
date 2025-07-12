@@ -35,6 +35,12 @@ interface Model {
   run_id: string;
 }
 
+const stageIcons = {
+  staging: Package,
+  production: Rocket,
+  archived: Archive,
+} as const;
+
 async function fetchModels(stage?: string): Promise<Model[]> {
   const url = stage 
     ? `/api/models/list?stage=${stage}`
@@ -339,7 +345,7 @@ function RegisterModelDialog({
       path: modelPath,
       stage,
       description,
-      s3Bucket: s3Bucket || undefined,
+      s3Bucket: (s3Bucket && s3Bucket !== '__none__') ? s3Bucket : undefined,
     });
   };
 
@@ -426,12 +432,7 @@ function RegisterModelDialog({
 
         <div className="grid gap-2">
           <Label htmlFor="s3bucket">S3 Bucket (optional)</Label>
-          <Input
-            id="s3bucket"
-            value={s3Bucket}
-            onChange={(e) => setS3Bucket(e.target.value)}
-            placeholder="my-model-bucket"
-          />
+          <S3BucketSelect value={s3Bucket} onValueChange={setS3Bucket} />
         </div>
       </div>
 
@@ -580,5 +581,74 @@ function ModelDetailsDialog({ model }: { model: Model }) {
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+function S3BucketSelect({ 
+  value, 
+  onValueChange 
+}: { 
+  value: string; 
+  onValueChange: (value: string) => void; 
+}) {
+  const { data: buckets, isLoading } = useQuery({
+    queryKey: ['s3-buckets'],
+    queryFn: async () => {
+      const response = await fetch('/api/models/s3-buckets');
+      if (!response.ok) throw new Error('Failed to fetch S3 buckets');
+      const data = await response.json();
+      return data.buckets || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <Select disabled>
+        <SelectTrigger>
+          <SelectValue placeholder="Loading buckets..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
+  if (!buckets || buckets.length === 0) {
+    return (
+      <div className="space-y-2">
+        <Input
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          placeholder="Enter bucket name manually (no S3 access)"
+        />
+        <p className="text-xs text-muted-foreground">
+          No S3 buckets found. Check your AWS credentials or enter manually.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select an S3 bucket..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">
+            <span className="text-muted-foreground">No S3 storage (local only)</span>
+          </SelectItem>
+          {buckets.map((bucket: string) => (
+            <SelectItem key={bucket} value={bucket}>
+              {bucket}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {buckets.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Found {buckets.length} S3 buckets. Select one for cloud storage or leave empty for local storage.
+        </p>
+      )}
+    </div>
   );
 }

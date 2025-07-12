@@ -5,13 +5,18 @@ import path from 'path';
 // Helper to run Python code directly
 async function runPythonCode(code: string): Promise<any> {
   return new Promise((resolve, reject) => {
-    const pythonPath = process.env.PYTHON_PATH || 'python3';
+    // Use the virtual environment's Python if available
+    const venvPath = path.join(process.cwd(), '..', '.venv', 'bin', 'python');
+    const pythonPath = process.env.PYTHON_PATH || venvPath;
     const mltrackPath = path.join(process.cwd(), '..', 'src');
+    const mlrunsPath = path.join(process.cwd(), '..', 'mlruns');
     
     const pythonProcess = spawn(pythonPath, ['-c', code], {
+      cwd: path.join(process.cwd(), '..'),  // Set working directory to project root
       env: {
         ...process.env,
         PYTHONPATH: mltrackPath,
+        MLFLOW_TRACKING_URI: `file://${mlrunsPath}`,
         PYTHONUNBUFFERED: '1'
       }
     });
@@ -29,12 +34,31 @@ async function runPythonCode(code: string): Promise<any> {
     
     pythonProcess.on('close', (code) => {
       if (code !== 0) {
+        console.error('Python stderr:', stderr);
         reject(new Error(stderr || 'Python process failed'));
       } else {
         try {
-          resolve(JSON.parse(stdout));
+          // Extract JSON from stdout - look for the last valid JSON object
+          const lines = stdout.trim().split('\n');
+          let jsonStr = '';
+          
+          // Try to find JSON in the output
+          for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim();
+            if (line.startsWith('{') || line.startsWith('[')) {
+              jsonStr = lines.slice(i).join('\n');
+              break;
+            }
+          }
+          
+          if (!jsonStr) {
+            throw new Error('No JSON found in output');
+          }
+          
+          resolve(JSON.parse(jsonStr));
         } catch (e) {
-          reject(new Error('Failed to parse Python output'));
+          console.error('Failed to parse Python output:', stdout);
+          reject(new Error('Failed to parse Python output: ' + e.message));
         }
       }
     });
@@ -49,6 +73,25 @@ export async function GET(
   const path = resolvedParams.path;
   
   try {
+    if (path[0] === 's3-buckets') {
+      // Get list of S3 buckets
+      const code = `
+import json
+import boto3
+from botocore.exceptions import ClientError
+
+try:
+    s3 = boto3.client('s3')
+    response = s3.list_buckets()
+    buckets = [b['Name'] for b in response.get('Buckets', [])]
+    print(json.dumps({"buckets": buckets}))
+except Exception as e:
+    print(json.dumps({"buckets": [], "error": str(e)}))
+`;
+      const result = await runPythonCode(code);
+      return NextResponse.json(result);
+    }
+    
     if (path[0] === 'list') {
       // Get list of models
       const stage = request.nextUrl.searchParams.get('stage');
@@ -118,18 +161,32 @@ export async function POST(
       const body = await request.json();
       const { runId, name, path: modelPath, stage, description, s3Bucket } = body;
       
+      // Escape strings to prevent injection
+      const escapeString = (str: string) => str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      
       const code = `
 import json
+import sys
+import os
+import mlflow
+
+# Use the tracking URI from environment
+
 from mltrack.model_registry import ModelRegistry
-registry = ModelRegistry(s3_bucket=${s3Bucket ? `"${s3Bucket}"` : 'None'})
-model_info = registry.register_model(
-    run_id="${runId}",
-    model_name="${name}",
-    model_path="${modelPath || 'model'}",
-    stage="${stage || 'staging'}",
-    description=${description ? `"${description}"` : 'None'}
-)
-print(json.dumps(model_info))
+
+try:
+    registry = ModelRegistry(s3_bucket=${s3Bucket ? `"${escapeString(s3Bucket)}"` : 'None'})
+    model_info = registry.register_model(
+        run_id="${escapeString(runId)}",
+        model_name="${escapeString(name)}",
+        model_path="${escapeString(modelPath || 'model')}",
+        stage="${escapeString(stage || 'staging')}",
+        description=${description ? `"${escapeString(description)}"` : 'None'}
+    )
+    print(json.dumps(model_info))
+except Exception as e:
+    print(json.dumps({"error": str(e)}), file=sys.stderr)
+    sys.exit(1)
 `;
       const result = await runPythonCode(code);
       return NextResponse.json(result);

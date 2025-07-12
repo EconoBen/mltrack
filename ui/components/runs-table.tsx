@@ -144,11 +144,16 @@ export function RunsTable() {
                 <TableCell className="text-sm">{duration}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {Object.entries(run.data.metrics || {}).slice(0, 3).map(([key, value]) => (
-                      <Badge key={key} variant="secondary" className="text-xs">
-                        {key}: {typeof value === 'number' ? value.toFixed(4) : value}
-                      </Badge>
-                    ))}
+                    {Object.entries(run.data.metrics || {}).slice(0, 3).map(([key, value]) => {
+                      const displayValue = typeof value === 'object' && value.value !== undefined 
+                        ? value.value 
+                        : value;
+                      return (
+                        <Badge key={key} variant="secondary" className="text-xs">
+                          {key}: {typeof displayValue === 'number' ? displayValue.toFixed(4) : displayValue}
+                        </Badge>
+                      );
+                    })}
                     {Object.keys(run.data.metrics || {}).length > 3 && (
                       <Badge variant="secondary" className="text-xs">
                         +{Object.keys(run.data.metrics).length - 3} more
@@ -163,7 +168,7 @@ export function RunsTable() {
                       .slice(0, 2)
                       .map(([key, value]) => (
                         <Badge key={key} variant="outline" className="text-xs">
-                          {key}: {value}
+                          {key}: {typeof value === 'object' ? JSON.stringify(value) : value}
                         </Badge>
                       ))}
                   </div>

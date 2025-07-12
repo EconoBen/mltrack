@@ -47,10 +47,55 @@ class ModelRegistry:
         
         # Initialize S3 client
         if self.s3_bucket:
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
-            self.s3_client = session.client('s3')
+            try:
+                session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+                self.s3_client = session.client('s3')
+                
+                # Validate S3 access
+                self._validate_s3_access()
+            except Exception as e:
+                print(f"⚠️ S3 initialization failed: {e}")
+                print("💡 To use S3 storage, ensure:")
+                print("   1. AWS credentials are configured (aws configure)")
+                print("   2. The bucket exists and you have write permissions")
+                print("   3. The bucket name is valid")
+                self.s3_client = None
+                self.s3_bucket = None
         else:
             self.s3_client = None
+    
+    def _validate_s3_access(self):
+        """Validate S3 bucket access and permissions."""
+        try:
+            # Check if bucket exists and we have access
+            self.s3_client.head_bucket(Bucket=self.s3_bucket)
+            
+            # Test write permissions with a small test object
+            test_key = f"{self.s3_prefix}/.mltrack_test"
+            self.s3_client.put_object(
+                Bucket=self.s3_bucket,
+                Key=test_key,
+                Body=b'test',
+                ContentType='text/plain'
+            )
+            
+            # Clean up test object
+            self.s3_client.delete_object(Bucket=self.s3_bucket, Key=test_key)
+            
+            print(f"✅ S3 bucket '{self.s3_bucket}' is accessible")
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                raise Exception(f"Bucket '{self.s3_bucket}' does not exist")
+            elif error_code == '403':
+                raise Exception(f"Access denied to bucket '{self.s3_bucket}'. Check your AWS credentials and permissions.")
+            elif error_code == 'NoSuchBucket':
+                raise Exception(f"Bucket '{self.s3_bucket}' does not exist")
+            elif error_code == 'AllAccessDisabled':
+                raise Exception(f"All access to bucket '{self.s3_bucket}' is disabled")
+            else:
+                raise Exception(f"S3 error ({error_code}): {e.response['Error']['Message']}")
     
     def register_model(
         self,
@@ -110,34 +155,42 @@ class ModelRegistry:
         
         # Upload to S3 if configured
         if self.s3_client and self.s3_bucket:
-            s3_key = f"{self.s3_prefix}/{model_name}/{model_version}"
-            model_metadata["s3_location"] = f"s3://{self.s3_bucket}/{s3_key}"
-            
-            # Upload model files
-            self._upload_directory_to_s3(local_path, s3_key)
-            
-            # Upload metadata
-            metadata_key = f"{s3_key}/metadata.json"
-            self.s3_client.put_object(
-                Bucket=self.s3_bucket,
-                Key=metadata_key,
-                Body=json.dumps(model_metadata, indent=2),
-                ContentType="application/json"
-            )
+            try:
+                s3_key = f"{self.s3_prefix}/{model_name}/{model_version}"
+                model_metadata["s3_location"] = f"s3://{self.s3_bucket}/{s3_key}"
+                
+                # Upload model files
+                self._upload_directory_to_s3(local_path, s3_key)
+                
+                # Upload metadata
+                metadata_key = f"{s3_key}/metadata.json"
+                self.s3_client.put_object(
+                    Bucket=self.s3_bucket,
+                    Key=metadata_key,
+                    Body=json.dumps(model_metadata, indent=2),
+                    ContentType="application/json"
+                )
+                print(f"✅ Model uploaded to S3: {model_metadata['s3_location']}")
+            except Exception as e:
+                print(f"⚠️ S3 upload failed (continuing with local storage): {e}")
+                # Remove S3 location from metadata if upload failed
+                model_metadata.pop("s3_location", None)
         
         # Register with MLflow Model Registry
         try:
-            mlflow.register_model(
+            # Register model first
+            model_version_info = mlflow.register_model(
                 model_uri=f"runs:/{run_id}/{model_path}",
                 name=model_name
             )
             
-            # Transition to specified stage
-            self.mlflow_client.transition_model_version_stage(
-                name=model_name,
-                version=model_version,
-                stage=stage
-            )
+            # Transition to specified stage using the integer version from MLflow
+            if hasattr(model_version_info, 'version'):
+                self.mlflow_client.transition_model_version_stage(
+                    name=model_name,
+                    version=model_version_info.version,  # Use MLflow's integer version
+                    stage=stage
+                )
         except Exception as e:
             print(f"MLflow model registry error (continuing): {e}")
         

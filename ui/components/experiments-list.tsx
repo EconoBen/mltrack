@@ -6,8 +6,39 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Folder, RefreshCw, Clock } from 'lucide-react';
+import { Folder, RefreshCw, Clock, Brain, BarChart, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { MLflowClient } from '@/lib/api/mlflow';
+
+// Component to show experiment type
+function ExperimentTypeBadge({ experimentId }: { experimentId: string }) {
+  const { data: stats } = useQuery({
+    queryKey: ['experiment-stats', experimentId],
+    queryFn: async () => {
+      const client = new MLflowClient({ baseUrl: process.env.NEXT_PUBLIC_MLFLOW_URL || '/api/mlflow' });
+      return client.getExperimentStats(experimentId);
+    },
+  });
+
+  if (!stats) return null;
+
+  const typeConfig = {
+    ml: { icon: BarChart, label: 'ML', className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
+    llm: { icon: Brain, label: 'LLM', className: 'bg-purple-500/10 text-purple-700 dark:text-purple-400' },
+    mixed: { icon: Sparkles, label: 'Mixed', className: 'bg-amber-500/10 text-amber-700 dark:text-amber-400' },
+  };
+
+  const config = typeConfig[stats.type];
+  const Icon = config.icon;
+
+  return (
+    <Badge variant="secondary" className={`text-xs ${config.className}`}>
+      <Icon className="h-3 w-3 mr-1" />
+      {config.label}
+    </Badge>
+  );
+}
 
 export function ExperimentsList() {
   const { data: experiments, isLoading, refetch } = useExperiments();
@@ -78,14 +109,17 @@ export function ExperimentsList() {
               >
                 <div className="flex flex-col gap-1 w-full">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium truncate">
+                    <span className="font-medium truncate flex-1">
                       {experiment.name}
                     </span>
-                    {experiment.lifecycle_stage === 'deleted' && (
-                      <Badge variant="destructive" className="text-xs">
-                        Deleted
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <ExperimentTypeBadge experimentId={experiment.experiment_id} />
+                      {experiment.lifecycle_stage === 'deleted' && (
+                        <Badge variant="destructive" className="text-xs">
+                          Deleted
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
@@ -95,7 +129,7 @@ export function ExperimentsList() {
                     <div className="flex flex-wrap gap-1 mt-1">
                       {Object.entries(experiment.tags).slice(0, 3).map(([key, value]) => (
                         <Badge key={key} variant="outline" className="text-xs">
-                          {key}: {value}
+                          {key}: {typeof value === 'object' ? JSON.stringify(value) : value}
                         </Badge>
                       ))}
                     </div>

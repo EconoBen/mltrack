@@ -8,13 +8,16 @@ import { MetricsChart } from '@/components/metrics-chart';
 import { LLMCostDashboard } from '@/components/llm-cost-dashboard';
 import { RunComparison } from '@/components/run-comparison';
 import { ModelRegistry } from '@/components/model-registry';
+import { DashboardOverview } from '@/components/dashboard-overview';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, Brain, DollarSign, BarChart, GitCompare, Package } from 'lucide-react';
+import { Activity, Brain, DollarSign, BarChart, GitCompare, Package, Home } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useExperimentType } from '@/lib/hooks/use-mlflow';
 
 export default function DashboardPage() {
   const { initialize, selectedExperiment } = useMLflowStore();
+  const { data: experimentType } = useExperimentType(selectedExperiment);
 
   useEffect(() => {
     initialize();
@@ -40,23 +43,27 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-12 gap-6">
-          {/* Experiments Sidebar */}
-          <div className="col-span-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Experiments</CardTitle>
-                <CardDescription>Select an experiment to view runs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ExperimentsList />
-              </CardContent>
-            </Card>
-          </div>
+        {!selectedExperiment ? (
+          /* Dashboard Overview when no experiment is selected */
+          <DashboardOverview />
+        ) : (
+          /* Detailed view when an experiment is selected */
+          <div className="grid grid-cols-12 gap-6">
+            {/* Experiments Sidebar */}
+            <div className="col-span-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Experiments</CardTitle>
+                  <CardDescription>Select an experiment to view runs</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ExperimentsList />
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Main Content Area */}
-          <div className="col-span-9">
-            {selectedExperiment ? (
+            {/* Main Content Area */}
+            <div className="col-span-9">
               <Tabs defaultValue="runs" className="space-y-4">
                 <TabsList>
                   <TabsTrigger value="runs" className="flex items-center gap-2">
@@ -71,10 +78,13 @@ export default function DashboardPage() {
                     <Activity className="h-4 w-4" />
                     Metrics
                   </TabsTrigger>
-                  <TabsTrigger value="llm-costs" className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    LLM Costs
-                  </TabsTrigger>
+                  {/* Only show LLM Costs tab for LLM or mixed experiments */}
+                  {(experimentType === 'llm' || experimentType === 'mixed') && (
+                    <TabsTrigger value="llm-costs" className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      LLM Costs
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="models" className="flex items-center gap-2">
                     <Package className="h-4 w-4" />
                     Models
@@ -117,9 +127,12 @@ export default function DashboardPage() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="llm-costs" className="space-y-4">
-                  <LLMCostDashboard />
-                </TabsContent>
+                {/* Conditionally render LLM Costs content */}
+                {(experimentType === 'llm' || experimentType === 'mixed') && (
+                  <TabsContent value="llm-costs" className="space-y-4">
+                    <LLMCostDashboard />
+                  </TabsContent>
+                )}
 
                 <TabsContent value="models" className="space-y-4">
                   <ModelRegistry />
@@ -142,19 +155,9 @@ export default function DashboardPage() {
                   </Card>
                 </TabsContent>
               </Tabs>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Experiment Selected</h3>
-                  <p className="text-muted-foreground text-center">
-                    Select an experiment from the sidebar to view its runs and metrics
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
