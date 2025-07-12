@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MLtrack UI - Modern MLflow Dashboard",
-  description: "A modern, intuitive UI for MLflow experiment tracking",
+  title: "MLtrack - Universal ML Tracking Tool",
+  description: "Modern UI for MLflow experiment tracking with support for ML and LLM workflows",
+  keywords: ["mlflow", "machine learning", "experiment tracking", "llm", "mlops"],
 };
 
 export default function RootLayout({

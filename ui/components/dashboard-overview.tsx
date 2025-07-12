@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { MLflowClient } from '@/lib/api/mlflow';
 import { useMLflowStore } from '@/lib/store/mlflow-store';
+import { useRouter } from 'next/navigation';
 
 interface ExperimentCardProps {
   experiment: any;
@@ -133,8 +134,13 @@ function ExperimentCard({ experiment, onSelect }: ExperimentCardProps) {
 }
 
 export function DashboardOverview() {
+  const router = useRouter();
   const { data: experiments, isLoading } = useExperiments();
   const { selectExperiment } = useMLflowStore();
+  
+  const handleExperimentSelect = (experimentId: string) => {
+    router.push(`/experiments/${experimentId}`);
+  };
 
   // Separate experiments by type
   const experimentsByType = experiments?.reduce((acc, exp) => {
@@ -269,7 +275,7 @@ export function DashboardOverview() {
                 <ExperimentCard
                   key={experiment.experiment_id}
                   experiment={experiment}
-                  onSelect={selectExperiment}
+                  onSelect={handleExperimentSelect}
                 />
               ))}
             </div>
