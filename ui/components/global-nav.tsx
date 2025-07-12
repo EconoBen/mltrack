@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UserMenu } from '@/components/user-menu';
 import { 
   Activity, Home, FlaskConical, Package, Rocket, 
   FileBarChart, Settings, Search 
@@ -71,6 +72,8 @@ export function GlobalNav() {
               <Settings className="h-4 w-4" />
             </Button>
             <ThemeToggle />
+            <div className="w-px h-6 bg-border" />
+            <UserMenu />
           </div>
         </div>
       </div>

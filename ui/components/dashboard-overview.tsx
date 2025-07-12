@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useExperiments } from '@/lib/hooks/use-mlflow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import { MLflowClient } from '@/lib/api/mlflow';
 import { useMLflowStore } from '@/lib/store/mlflow-store';
 import { useRouter } from 'next/navigation';
+import { ExperimentsTable } from './experiments-table';
+import { ViewSwitcher, type ViewMode } from './view-switcher';
 
 interface ExperimentCardProps {
   experiment: any;
@@ -135,8 +139,10 @@ function ExperimentCard({ experiment, onSelect }: ExperimentCardProps) {
 
 export function DashboardOverview() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { data: experiments, isLoading } = useExperiments();
   const { selectExperiment } = useMLflowStore();
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   
   const handleExperimentSelect = (experimentId: string) => {
     router.push(`/experiments/${experimentId}`);
@@ -246,14 +252,17 @@ export function DashboardOverview() {
         </Card>
       </div>
 
-      {/* Experiments Grid */}
+      {/* Experiments Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">All Experiments</h2>
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
+          <div className="flex items-center gap-2">
+            <ViewSwitcher value={viewMode} onChange={setViewMode} />
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="all" className="space-y-4">
@@ -267,47 +276,137 @@ export function DashboardOverview() {
               <Brain className="h-4 w-4" />
               LLM Only
             </TabsTrigger>
+            {session && (
+              <TabsTrigger value="mine" className="flex items-center gap-2">
+                My Experiments
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {experiments.map((experiment) => (
-                <ExperimentCard
-                  key={experiment.experiment_id}
-                  experiment={experiment}
-                  onSelect={handleExperimentSelect}
-                />
-              ))}
-            </div>
+            {viewMode === 'table' ? (
+              <ExperimentsTable experiments={experiments} isLoading={isLoading} />
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {experiments.map((experiment) => (
+                  <ExperimentCard
+                    key={experiment.experiment_id}
+                    experiment={experiment}
+                    onSelect={handleExperimentSelect}
+                  />
+                ))}
+              </div>
+            ) : (
+              // Compact view - simple list
+              <div className="space-y-2">
+                {experiments.map((experiment) => (
+                  <Card 
+                    key={experiment.experiment_id} 
+                    className="p-4 cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleExperimentSelect(experiment.experiment_id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BarChart className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{experiment.name}</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="ml" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {experiments
-                .filter(e => !e.name.includes('llm'))
-                .map((experiment) => (
-                  <ExperimentCard
-                    key={experiment.experiment_id}
-                    experiment={experiment}
-                    onSelect={selectExperiment}
-                  />
-                ))}
-            </div>
+            {viewMode === 'table' ? (
+              <ExperimentsTable 
+                experiments={experiments.filter(e => !e.name.includes('llm'))} 
+                isLoading={isLoading} 
+              />
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {experiments
+                  .filter(e => !e.name.includes('llm'))
+                  .map((experiment) => (
+                    <ExperimentCard
+                      key={experiment.experiment_id}
+                      experiment={experiment}
+                      onSelect={handleExperimentSelect}
+                    />
+                  ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {experiments
+                  .filter(e => !e.name.includes('llm'))
+                  .map((experiment) => (
+                    <Card 
+                      key={experiment.experiment_id} 
+                      className="p-4 cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleExperimentSelect(experiment.experiment_id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <BarChart className="h-4 w-4 text-blue-600" />
+                          <span className="font-medium">{experiment.name}</span>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </Card>
+                  ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="llm" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {experiments
-                .filter(e => e.name.includes('llm'))
-                .map((experiment) => (
-                  <ExperimentCard
-                    key={experiment.experiment_id}
-                    experiment={experiment}
-                    onSelect={selectExperiment}
-                  />
-                ))}
-            </div>
+            {viewMode === 'table' ? (
+              <ExperimentsTable 
+                experiments={experiments.filter(e => e.name.includes('llm'))} 
+                isLoading={isLoading} 
+              />
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {experiments
+                  .filter(e => e.name.includes('llm'))
+                  .map((experiment) => (
+                    <ExperimentCard
+                      key={experiment.experiment_id}
+                      experiment={experiment}
+                      onSelect={handleExperimentSelect}
+                    />
+                  ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {experiments
+                  .filter(e => e.name.includes('llm'))
+                  .map((experiment) => (
+                    <Card 
+                      key={experiment.experiment_id} 
+                      className="p-4 cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleExperimentSelect(experiment.experiment_id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Brain className="h-4 w-4 text-purple-600" />
+                          <span className="font-medium">{experiment.name}</span>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </Card>
+                  ))}
+              </div>
+            )}
           </TabsContent>
+
+          {session && (
+            <TabsContent value="mine" className="space-y-4">
+              <div className="text-center text-muted-foreground py-8">
+                <p>User-specific filtering will be available once experiments are associated with users.</p>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

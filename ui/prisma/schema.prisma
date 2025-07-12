@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js Models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // MLtrack specific fields
+  username      String?   @unique
+  role          String    @default("user") // user, admin
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  preferences   UserPreferences?
+  teamMembers   TeamMember[]
+  experiments   Experiment[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// MLtrack Models
+model UserPreferences {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  defaultView         String   @default("table") // table, grid, compact
+  showOthersRuns      Boolean  @default(true)
+  emailNotifications  Boolean  @default(true)
+  theme               String   @default("system") // light, dark, system
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  visibility  String       @default("private") // private, internal, public
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  members     TeamMember[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  userId    String
+  teamId    String
+  role      String   @default("member") // member, admin
+  joinedAt  DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  team      Team     @relation(fields: [teamId], references: [id])
+  
+  @@unique([userId, teamId])
+}
+
+// Track experiment ownership
+model Experiment {
+  id           String   @id @default(cuid())
+  mlflowId     String   @unique // MLflow experiment ID
+  ownerId      String?
+  teamId       String?
+  visibility   String   @default("private") // private, team, public
+  starred      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  
+  owner        User?    @relation(fields: [ownerId], references: [id])
+}

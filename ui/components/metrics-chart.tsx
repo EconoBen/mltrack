@@ -9,6 +9,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, BarChart3 } from 'lucide-react';
 
+// Custom tooltip component
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-background border rounded-lg shadow-lg p-3">
+        <p className="font-medium">{`Run: ${label}`}</p>
+        <p className="text-sm text-muted-foreground">
+          {`${payload[0].name}: ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(4) : payload[0].value}`}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function MetricsChart() {
   const { selectedExperiment } = useMLflowStore();
   const { data: runs } = useRuns(selectedExperiment ? [selectedExperiment] : []);
@@ -25,21 +40,35 @@ export function MetricsChart() {
   const metricsList = Array.from(allMetrics).sort();
 
   // Prepare data for charts
-  const chartData = runs?.map((run) => ({
-    runId: run.info.run_id.slice(0, 8),
-    value: run.data.metrics[selectedMetric] || 0,
-    status: run.info.status,
-    ...run.data.metrics,
-  })) || [];
+  const chartData = runs?.map((run) => {
+    // Handle both simple values and object metrics
+    const metricValue = run.data.metrics[selectedMetric];
+    const value = typeof metricValue === 'object' && metricValue !== null 
+      ? metricValue.value || 0 
+      : metricValue || 0;
+    
+    return {
+      runId: run.info.run_id.slice(0, 8),
+      value: value,
+      status: run.info.status,
+    };
+  }) || [];
 
   // Time series data (for runs that have timestamps)
   const timeSeriesData = runs
     ?.filter((run) => run.info.start_time)
-    .map((run) => ({
-      time: new Date(run.info.start_time).toLocaleString(),
-      value: run.data.metrics[selectedMetric] || 0,
-      runId: run.info.run_id.slice(0, 8),
-    }))
+    .map((run) => {
+      const metricValue = run.data.metrics[selectedMetric];
+      const value = typeof metricValue === 'object' && metricValue !== null 
+        ? metricValue.value || 0 
+        : metricValue || 0;
+      
+      return {
+        time: new Date(run.info.start_time).toLocaleString(),
+        value: value,
+        runId: run.info.run_id.slice(0, 8),
+      };
+    })
     .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()) || [];
 
   if (!runs || runs.length === 0) {
@@ -89,7 +118,7 @@ export function MetricsChart() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="runId" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
                     <Bar dataKey="value" fill="#8884d8" name={selectedMetric} />
                   </BarChart>
@@ -112,7 +141,7 @@ export function MetricsChart() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="time" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
                     <Line
                       type="monotone"
