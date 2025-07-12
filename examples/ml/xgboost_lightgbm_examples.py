@@ -1,4 +1,4 @@
-"""XGBoost and LightGBM examples for mltrack."""
+"""XGBoost and LightGBM examples for mltrack with enhanced model introspection."""
 
 import numpy as np
 import pandas as pd
@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import accuracy_score, roc_auc_score, mean_squared_error, r2_score
 import mlflow
 from mltrack import track, track_context
+from mltrack.model_registry import ModelRegistry
 
 # Try to import XGBoost and LightGBM
 try:

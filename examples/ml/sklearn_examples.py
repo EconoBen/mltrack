@@ -1,10 +1,10 @@
-"""Comprehensive scikit-learn examples for mltrack."""
+"""Comprehensive scikit-learn examples for mltrack with enhanced model introspection."""
 
 import numpy as np
 import pandas as pd
 from sklearn.datasets import (
     make_classification, make_regression, load_iris, 
-    load_wine, load_digits, fetch_california_housing
+    load_wine, load_digits, fetch_california_housing, make_blobs
 )
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -14,13 +14,15 @@ from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     mean_squared_error, r2_score, mean_absolute_error,
-    confusion_matrix, classification_report
+    confusion_matrix, classification_report, silhouette_score
 )
 import mlflow
 from mltrack import track, track_context
+from mltrack.model_registry import ModelRegistry
 
 
 @track(name="sklearn-classification-comparison")
@@ -334,9 +336,111 @@ def compare_regression_models():
             print(f"    RMSE: {rmse:.3f}, R²: {r2:.3f}")
 
 
+@track(name="sklearn-clustering-demo")
+def clustering_example():
+    """Demonstrate clustering algorithms with automatic introspection."""
+    print("\n🔮 Clustering Example with Model Introspection")
+    
+    # Create synthetic clustering dataset
+    X, y_true = make_blobs(
+        n_samples=500,
+        n_features=4,
+        centers=3,
+        cluster_std=0.5,
+        random_state=42
+    )
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Try different clustering algorithms
+    clusterers = {
+        "KMeans": KMeans(n_clusters=3, random_state=42),
+        "DBSCAN": DBSCAN(eps=0.5, min_samples=5),
+        "AgglomerativeClustering": AgglomerativeClustering(n_clusters=3)
+    }
+    
+    for name, clusterer in clusterers.items():
+        with track_context(f"clustering-{name}"):
+            print(f"\n  Training {name}...")
+            
+            # Fit the clusterer
+            labels = clusterer.fit_predict(X_scaled)
+            
+            # Calculate silhouette score if we have valid clusters
+            n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+            if n_clusters > 1:
+                score = silhouette_score(X_scaled, labels)
+                mlflow.log_metric("silhouette_score", score)
+                print(f"    Silhouette Score: {score:.3f}")
+            
+            mlflow.log_metric("n_clusters", n_clusters)
+            
+            # The model introspection will automatically detect this as clustering
+            # and tag it appropriately with mltrack.task=clustering
+    
+    return clusterers["KMeans"]  # Return one for registration demo
+
+
+@track(name="sklearn-model-registry-demo")
+def model_registry_example():
+    """Demonstrate model registration with enhanced metadata."""
+    print("\n📦 Model Registry Example with Enhanced Tagging")
+    
+    # Train a model
+    X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    model = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
+    model.fit(X_train, y_train)
+    
+    # Log metrics
+    accuracy = model.score(X_test, y_test)
+    mlflow.log_metric("accuracy", accuracy)
+    
+    # The introspection system will automatically detect:
+    # - mltrack.algorithm: randomforestclassifier
+    # - mltrack.task: classification
+    # - mltrack.framework: sklearn
+    # - mltrack.category: ml
+    
+    print(f"  Model trained with accuracy: {accuracy:.3f}")
+    print("  ✨ Enhanced tags automatically added via introspection!")
+    
+    # Register the model
+    runs = mlflow.search_runs(order_by=["start_time DESC"], max_results=1)
+    if not runs.empty:
+        run_id = runs.iloc[0]["run_id"]
+        
+        registry = ModelRegistry()
+        model_info = registry.register_model(
+            run_id=run_id,
+            model_name="sklearn-rf-demo",
+            model_path="model",
+            description="Random Forest with automatic type detection",
+            metadata={
+                "requirements": ["scikit-learn>=1.0"],
+                "dataset": "synthetic classification"
+            }
+        )
+        
+        print(f"\n  Model registered: {model_info['model_name']} v{model_info['version']}")
+        print(f"  Detected model type: {model_info.get('model_type', 'unknown')}")
+        print(f"  Detected task type: {model_info.get('task_type', 'unknown')}")
+        
+        # Show cached loading code
+        print("\n  Generated loading code (cached for performance):")
+        code = registry.generate_loading_code("sklearn-rf-demo")
+        print("  " + "\n  ".join(code.split("\n")[:15]))  # Show first 15 lines
+        print("  ...")
+    
+    return model
+
+
 def main():
     """Run all sklearn examples."""
-    print("🚀 MLtrack Scikit-learn Examples\n")
+    print("🚀 MLtrack Scikit-learn Examples with Enhanced Introspection\n")
     print("=" * 50)
     
     # Run all examples
@@ -345,13 +449,21 @@ def main():
     hyperparameter_tuning()
     advanced_pipeline()
     compare_regression_models()
+    clustering_example()
+    model_registry_example()
     
     print("\n" + "=" * 50)
     print("✅ All examples completed!")
+    print("\n🔍 New Features Demonstrated:")
+    print("  - Automatic model type detection (classification/regression/clustering)")
+    print("  - Hierarchical tagging (category/framework/task/algorithm)")
+    print("  - Cached loading code generation for performance")
+    print("  - Model registry with enhanced metadata")
     print("\nTo view results:")
     print("  1. Run: uv run python -m mlflow ui")
     print("  2. Open: http://localhost:5000")
-    print("  3. Explore the different experiments")
+    print("  3. Look for the enhanced tags in the runs!")
+    print("  4. Check the UI to see model types displayed")
 
 
 if __name__ == "__main__":
