@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/breadcrumb';
+import { ModelTypeFilter } from '@/components/model-type-filter';
 import { 
   Activity, Search, Filter, Grid3X3, List, Calendar,
   BarChart, Brain, Sparkles, Home, RefreshCw
@@ -30,6 +31,11 @@ export default function ExperimentsPage() {
   const [typeFilter, setTypeFilter] = useState<ExperimentType>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
+  
+  // Model type filters
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>([]);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
   // Filter experiments
   const filteredExperiments = experiments?.filter(exp => {
@@ -94,21 +100,18 @@ export default function ExperimentsPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="flex gap-2">
-                  <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ExperimentType)}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="ml">ML Only</SelectItem>
-                      <SelectItem value="llm">LLM Only</SelectItem>
-                      <SelectItem value="mixed">Mixed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex gap-2 items-center">
+                  <ModelTypeFilter
+                    selectedTypes={selectedTypes}
+                    selectedFrameworks={selectedFrameworks}
+                    selectedTasks={selectedTasks}
+                    onTypesChange={setSelectedTypes}
+                    onFrameworksChange={setSelectedFrameworks}
+                    onTasksChange={setSelectedTasks}
+                  />
 
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[140px] h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -119,7 +122,7 @@ export default function ExperimentsPage() {
                   </Select>
 
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[140px] h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,6 +138,7 @@ export default function ExperimentsPage() {
                       variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('grid')}
+                      className="h-6 w-6 p-0"
                     >
                       <Grid3X3 className="h-4 w-4" />
                     </Button>
@@ -142,6 +146,7 @@ export default function ExperimentsPage() {
                       variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('list')}
+                      className="h-6 w-6 p-0"
                     >
                       <List className="h-4 w-4" />
                     </Button>

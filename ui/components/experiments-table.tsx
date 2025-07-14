@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { extractRunTags, getRunType, getModelInfo } from '@/lib/utils/mlflow-tags';
 
 interface ExperimentsTableProps {
   experiments: any[];
@@ -38,6 +39,7 @@ export function ExperimentsTable({ experiments, isLoading }: ExperimentsTablePro
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Models</TableHead>
             <TableHead>Runs</TableHead>
             <TableHead>Last Updated</TableHead>
             <TableHead>Status</TableHead>
@@ -49,6 +51,7 @@ export function ExperimentsTable({ experiments, isLoading }: ExperimentsTablePro
             <TableRow key={i}>
               <TableCell><Skeleton className="h-4 w-48" /></TableCell>
               <TableCell><Skeleton className="h-6 w-12" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-32" /></TableCell>
               <TableCell><Skeleton className="h-4 w-8" /></TableCell>
               <TableCell><Skeleton className="h-4 w-24" /></TableCell>
               <TableCell><Skeleton className="h-6 w-16" /></TableCell>
@@ -65,14 +68,39 @@ export function ExperimentsTable({ experiments, isLoading }: ExperimentsTablePro
     if (exp.tags?.['mltrack.type']) {
       return exp.tags['mltrack.type'];
     }
-    // Check runs for type
+    // Check runs for type using new category tag
     const runs = exp.latest_runs || [];
-    const hasLLM = runs.some((r: any) => r.tags?.['mltrack.type'] === 'llm');
-    const hasML = runs.some((r: any) => r.tags?.['mltrack.type'] !== 'llm');
+    
+    const hasLLM = runs.some((r: any) => {
+      const tags = extractRunTags(r);
+      const runType = getRunType(tags);
+      return runType === 'llm';
+    });
+    
+    const hasML = runs.some((r: any) => {
+      const tags = extractRunTags(r);
+      const runType = getRunType(tags);
+      return runType === 'ml';
+    });
     
     if (hasLLM && hasML) return 'mixed';
     if (hasLLM) return 'llm';
     return 'ml';
+  };
+  
+  const getExperimentModels = (exp: any) => {
+    const runs = exp.latest_runs || [];
+    const models = new Set<string>();
+    
+    runs.forEach((run: any) => {
+      const tags = extractRunTags(run);
+      const { algorithm } = getModelInfo(tags);
+      if (algorithm && algorithm !== '-') {
+        models.add(algorithm);
+      }
+    });
+    
+    return Array.from(models).slice(0, 3); // Show first 3 models
   };
 
   const getStatusColor = (status: string) => {
@@ -94,6 +122,7 @@ export function ExperimentsTable({ experiments, isLoading }: ExperimentsTablePro
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Type</TableHead>
+          <TableHead>Models</TableHead>
           <TableHead>Runs</TableHead>
           <TableHead>Last Updated</TableHead>
           <TableHead>Status</TableHead>
@@ -103,6 +132,7 @@ export function ExperimentsTable({ experiments, isLoading }: ExperimentsTablePro
       <TableBody>
         {experiments.map((experiment) => {
           const type = getExperimentType(experiment);
+          const models = getExperimentModels(experiment);
           const latestRun = experiment.latest_runs?.[0];
           const runCount = experiment.latest_runs?.length || 0;
           const lastUpdateTime = latestRun?.info?.end_time || latestRun?.info?.start_time;
@@ -128,6 +158,18 @@ export function ExperimentsTable({ experiments, isLoading }: ExperimentsTablePro
                 <Badge variant={type === 'llm' ? 'secondary' : 'default'} className="text-xs">
                   {type.toUpperCase()}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  {models.map((model) => (
+                    <Badge key={model} variant="outline" className="text-xs">
+                      {model}
+                    </Badge>
+                  ))}
+                  {models.length === 0 && (
+                    <span className="text-xs text-muted-foreground">No models</span>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">

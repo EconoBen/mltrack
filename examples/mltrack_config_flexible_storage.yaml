@@ -1,0 +1,60 @@
+# MLtrack configuration with flexible data storage enabled
+
+# Core settings
+tracking_uri: "./mlruns"
+experiment_name: "flexible-storage-experiments"
+team_name: "ML Team"
+
+# Flexible data storage settings
+enable_flexible_storage: true
+s3_bucket: "my-mltrack-bucket"  # Set via MLTRACK_S3_BUCKET env var
+default_run_type: "experiment"   # Options: experiment, production, evaluation, development, analysis
+default_storage_mode: "by_project"  # Options: by_project, by_date, by_type, by_model, flat
+
+# Auto-logging features
+auto_log_git: true
+auto_log_pip: true
+auto_log_conda: false
+auto_log_system: true
+auto_detect_frameworks: true
+
+# LLM tracking
+llm_tracking_enabled: true
+
+# Default tags
+default_tags:
+  environment: "development"
+  
+# Run type configurations (optional)
+run_type_configs:
+  production:
+    storage_modes: ["by_type", "by_date"]
+    tags:
+      environment: "production"
+      monitoring: "enabled"
+  
+  evaluation:
+    storage_modes: ["by_type", "by_project"]
+    tags:
+      purpose: "benchmarking"
+  
+  experiment:
+    storage_modes: ["by_project"]
+    tags:
+      purpose: "research"
+
+# Data deduplication settings
+deduplication:
+  enabled: true
+  hash_algorithm: "sha256"
+  
+# S3 settings (can also be set via environment variables)
+s3_settings:
+  aws_profile: null  # Use default profile
+  region: "us-east-1"
+  
+# Storage optimization
+storage_optimization:
+  compress_artifacts: true
+  cleanup_old_runs: false
+  retention_days: 90

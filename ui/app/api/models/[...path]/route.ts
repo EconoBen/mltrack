@@ -58,7 +58,7 @@ async function runPythonCode(code: string): Promise<any> {
           resolve(JSON.parse(jsonStr));
         } catch (e) {
           console.error('Failed to parse Python output:', stdout);
-          reject(new Error('Failed to parse Python output: ' + e.message));
+          reject(new Error('Failed to parse Python output: ' + (e instanceof Error ? e.message : String(e))));
         }
       }
     });

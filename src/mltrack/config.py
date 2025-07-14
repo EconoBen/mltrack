@@ -76,6 +76,28 @@ class MLTrackConfig(BaseModel):
         description="Default artifact storage location"
     )
     
+    # Flexible data storage settings
+    enable_flexible_storage: bool = Field(
+        default=False,
+        description="Enable flexible data storage with deduplication"
+    )
+    s3_bucket: Optional[str] = Field(
+        default=None,
+        description="S3 bucket for data storage (or use MLTRACK_S3_BUCKET env var)"
+    )
+    default_run_type: str = Field(
+        default="experiment",
+        description="Default run type: experiment, production, evaluation, development, analysis"
+    )
+    default_storage_mode: str = Field(
+        default="by_project",
+        description="Default storage organization: by_project, by_date, by_type, by_model, flat"
+    )
+    data_deduplication: bool = Field(
+        default=True,
+        description="Enable content-addressable storage for data deduplication"
+    )
+    
     # LLM tracking settings
     llm_tracking_enabled: bool = Field(
         default=True,
@@ -125,6 +147,13 @@ class MLTrackConfig(BaseModel):
                 # For relative paths, resolve from current directory
                 expanded = os.path.abspath(expanded)
             return f"file://{expanded}"
+        return v
+    
+    @validator("s3_bucket", pre=True, always=True)
+    def get_s3_bucket(cls, v: Optional[str]) -> Optional[str]:
+        """Get S3 bucket from config or environment."""
+        if not v:
+            return os.environ.get("MLTRACK_S3_BUCKET")
         return v
     
     @classmethod

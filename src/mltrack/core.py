@@ -22,6 +22,13 @@ from mltrack.utils import get_pip_requirements, get_conda_environment, get_uv_in
 from mltrack.llm import LLMTracker
 from mltrack.introspection import ModelIntrospector
 
+# Optional flexible data store
+try:
+    from mltrack.data_store_v2 import FlexibleDataStore, RunType, StorageMode
+    HAS_FLEXIBLE_STORE = True
+except ImportError:
+    HAS_FLEXIBLE_STORE = False
+
 logger = logging.getLogger(__name__)
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -36,6 +43,20 @@ class MLTracker:
         self._setup_mlflow()
         self.detector = FrameworkDetector()
         self.llm_tracker = LLMTracker(self.config) if self.config.llm_tracking_enabled else None
+        
+        # Initialize flexible data store if enabled and available
+        self.data_store = None
+        if HAS_FLEXIBLE_STORE and getattr(self.config, 'enable_flexible_storage', False):
+            try:
+                self.data_store = FlexibleDataStore(
+                    s3_bucket=getattr(self.config, 's3_bucket', None),
+                    default_run_type=RunType(getattr(self.config, 'default_run_type', 'experiment')),
+                    default_storage_mode=StorageMode(getattr(self.config, 'default_storage_mode', 'by_project'))
+                )
+                logger.info("Flexible data storage enabled")
+            except Exception as e:
+                logger.warning(f"Failed to initialize flexible data store: {e}")
+                self.data_store = None
     
     def _check_environment(self) -> None:
         """Check if we're in a UV environment and warn if not."""
@@ -173,6 +194,17 @@ class MLTracker:
                     # Log function information
                     mlflow.log_param("function_name", f.__name__)
                     mlflow.log_param("function_module", f.__module__)
+                    
+                    # Initialize flexible data store manifest if enabled
+                    data_manifest = None
+                    if self.data_store and mlflow.active_run():
+                        run_info = mlflow.active_run().info
+                        data_manifest = self.data_store.create_run(
+                            run_id=run_info.run_id,
+                            run_type=getattr(self.config, 'default_run_type', RunType.EXPERIMENT),
+                            project=run_info.experiment_id,
+                            tags=self._prepare_tags(tags)
+                        )
                     
                     # Log function arguments
                     if log_args:

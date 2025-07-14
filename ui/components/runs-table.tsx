@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { extractRunTags, getRunType, getModelInfo } from '@/lib/utils/mlflow-tags';
 
 const StatusIcon = {
   FINISHED: CheckCircle,
@@ -108,16 +109,17 @@ export function RunsTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Run ID</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Model</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Started</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Metrics</TableHead>
-            <TableHead>Tags</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {runs.map((run) => {
+          {runs.map((run, index) => {
             const Icon = StatusIcon[run.info.status as keyof typeof StatusIcon] || Clock;
             const colorClass = StatusColor[run.info.status as keyof typeof StatusColor] || 'text-gray-600';
             const duration = run.info.end_time
@@ -127,10 +129,46 @@ export function RunsTable() {
               addSuffix: true,
             });
 
+            // Extract model type information from tags using our helper
+            const tags = extractRunTags(run);
+            const runType = getRunType(tags);
+            const { algorithm: modelAlgorithm, framework: modelFramework, task: modelTask } = getModelInfo(tags);
+
+            // Determine run type badge variant
+            const getTypeBadgeVariant = (type: string) => {
+              switch (type) {
+                case 'llm': return 'secondary';
+                case 'ml': return 'default';
+                default: return 'outline';
+              }
+            };
+
             return (
               <TableRow key={run.info.run_id}>
                 <TableCell className="font-mono text-sm">
                   {run.info.run_id.slice(0, 8)}...
+                </TableCell>
+                <TableCell>
+                  <Badge variant={getTypeBadgeVariant(runType)} className="text-xs">
+                    {runType.toUpperCase()}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col space-y-1">
+                    {modelAlgorithm !== '-' && (
+                      <Badge variant="outline" className="text-xs w-fit">
+                        {modelAlgorithm}
+                      </Badge>
+                    )}
+                    <div className="flex gap-1">
+                      {modelFramework !== '-' && (
+                        <span className="text-xs text-muted-foreground">{modelFramework}</span>
+                      )}
+                      {modelTask !== '-' && (
+                        <span className="text-xs text-muted-foreground">• {modelTask}</span>
+                      )}
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -159,18 +197,6 @@ export function RunsTable() {
                         +{Object.keys(run.data.metrics).length - 3} more
                       </Badge>
                     )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {Object.entries(run.data.tags || {})
-                      .filter(([key]) => !key.startsWith('mlflow.'))
-                      .slice(0, 2)
-                      .map(([key, value]) => (
-                        <Badge key={key} variant="outline" className="text-xs">
-                          {key}: {typeof value === 'object' ? JSON.stringify(value) : value}
-                        </Badge>
-                      ))}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">

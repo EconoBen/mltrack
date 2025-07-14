@@ -3312,6 +3312,8 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
+    { name = "boto3", version = "1.37.38", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "boto3", version = "1.39.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "cloudpickle" },
@@ -3406,6 +3408,7 @@ dev = [
 requires-dist = [
     { name = "anthropic", specifier = ">=0.57.1" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0" },
+    { name = "boto3", specifier = ">=1.37.38" },
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.28.0" },
     { name = "click", specifier = ">=8.0" },
     { name = "cloudpickle", specifier = ">=3.0.0" },
