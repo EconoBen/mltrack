@@ -17,6 +17,7 @@ from mltrack.config import MLTrackConfig
 from mltrack.version import __version__
 from mltrack.utils import is_uv_environment, get_uv_info
 from mltrack.detectors import FrameworkDetector
+from mltrack.user_info import setup_api_key, UserRegistry, get_current_user
 
 console = Console()
 
@@ -412,6 +413,89 @@ def ui(port: int, host: str, modern: bool, ui_port: int):
 def models():
     """Model registry commands."""
     pass
+
+
+# User management commands
+@cli.group()
+def user():
+    """Manage MLtrack users and API keys."""
+    pass
+
+
+@user.command()
+def info():
+    """Show current user information."""
+    user = get_current_user()
+    if user.id == "anonymous":
+        console.print("No user configured. You're running as anonymous.")
+        console.print("\nTo set up a user, run:")
+        console.print("  [cyan]mltrack user create --email your@email.com --name 'Your Name'[/cyan]")
+        console.print("\nOr set environment variable:")
+        console.print("  [cyan]export MLTRACK_API_KEY=your_api_key[/cyan]")
+    else:
+        console.print(f"Current user: [green]{user.name}[/green]")
+        console.print(f"Email: [cyan]{user.email}[/cyan]")
+        console.print(f"User ID: [dim]{user.id}[/dim]")
+        if user.team:
+            console.print(f"Team: [yellow]{user.team}[/yellow]")
+        if user.api_key and os.environ.get('MLTRACK_API_KEY') == user.api_key:
+            console.print("Authentication: [green]API Key (from environment)[/green]")
+        elif user.api_key:
+            console.print("Authentication: [yellow]Local user[/yellow]")
+        else:
+            console.print("Authentication: [dim]Git config[/dim]")
+
+
+@user.command()
+@click.option('--email', required=True, help='User email address')
+@click.option('--name', required=True, help='User display name')
+@click.option('--team', help='Team name')
+def create(email: str, name: str, team: Optional[str]):
+    """Create a new user and generate API key."""
+    try:
+        api_key = setup_api_key(email, name, team)
+        if api_key:
+            console.print(f"[green]✅ User created successfully![/green]")
+            console.print(f"\nYour API key: [bold cyan]{api_key}[/bold cyan]")
+            console.print("\nTo use this API key, set the environment variable:")
+            console.print(f"  [dim]export MLTRACK_API_KEY={api_key}[/dim]")
+            console.print("\nOr add it to your shell profile (~/.bashrc, ~/.zshrc, etc.)")
+            console.print("\n[yellow]⚠️  Keep this API key secure! It won't be shown again.[/yellow]")
+        else:
+            console.print("[yellow]User already exists. Use 'mltrack user reset-key' to generate a new API key.[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error creating user:[/red] {e}")
+        raise click.Abort()
+
+
+@user.command()
+def list():
+    """List all registered users."""
+    registry = UserRegistry()
+    users = registry.list_users()
+    
+    if not users:
+        console.print("[yellow]No users registered.[/yellow]")
+        return
+    
+    # Create table
+    table = Table(title="Registered Users")
+    table.add_column("Name", style="cyan")
+    table.add_column("Email", style="green")
+    table.add_column("Team", style="yellow")
+    table.add_column("Has API Key", justify="center")
+    table.add_column("Created", style="dim")
+    
+    for user in users:
+        table.add_row(
+            user.name,
+            user.email,
+            user.team or "-",
+            "✓" if user.api_key else "✗",
+            user.created_at[:10]  # Just date
+        )
+    
+    console.print(table)
 
 
 @models.command(name="register")

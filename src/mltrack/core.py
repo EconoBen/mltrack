@@ -145,7 +145,12 @@ class MLTracker:
             system_info = self._get_system_info()
             tags["system.platform"] = system_info["platform"]
             tags["system.python_version"] = system_info["python_version"]
+            # Keep system.user for backward compatibility
             tags["system.user"] = system_info["user"]
+        
+        # Add user tags (new user identification system)
+        from .user_info import get_user_tags
+        tags.update(get_user_tags())
         
         # Add framework tags
         if self.config.auto_detect_frameworks:
