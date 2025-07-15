@@ -6,13 +6,14 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
 import { 
   Activity, Home, FlaskConical, Package, Rocket, 
-  FileBarChart, Settings, Search 
+  FileBarChart, Settings, Search, BarChart3 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Dashboard', href: '/', icon: Home },
   { label: 'Experiments', href: '/experiments', icon: FlaskConical },
+  { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   { label: 'Models', href: '/models', icon: Package },
   { label: 'Deployments', href: '/deployments', icon: Rocket },
   { label: 'Reports', href: '/reports', icon: FileBarChart },

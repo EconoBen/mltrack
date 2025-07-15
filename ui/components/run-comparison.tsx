@@ -36,22 +36,52 @@ export function RunComparison() {
   const allParams = new Set<string>();
   
   selectedRunsData.forEach(run => {
-    Object.keys(run.data.metrics || {}).forEach(key => allMetrics.add(key));
-    Object.keys(run.data.params || {}).forEach(key => allParams.add(key));
+    // Handle metrics as array of {key, value} objects
+    if (Array.isArray(run.data.metrics)) {
+      run.data.metrics.forEach((metric: any) => allMetrics.add(metric.key));
+    } else if (run.data.metrics && typeof run.data.metrics === 'object') {
+      // Fallback for object format
+      Object.keys(run.data.metrics).forEach(key => allMetrics.add(key));
+    }
+    
+    // Handle params as array of {key, value} objects
+    if (Array.isArray(run.data.params)) {
+      run.data.params.forEach((param: any) => allParams.add(param.key));
+    } else if (run.data.params && typeof run.data.params === 'object') {
+      // Fallback for object format
+      Object.keys(run.data.params).forEach(key => allParams.add(key));
+    }
   });
 
   const sortedMetrics = Array.from(allMetrics).sort();
   const sortedParams = Array.from(allParams).sort();
 
+  // Helper to get metric value from run data
+  const getMetricValue = (run: any, metricKey: string) => {
+    if (Array.isArray(run.data.metrics)) {
+      const metric = run.data.metrics.find((m: any) => m.key === metricKey);
+      return metric?.value;
+    } else if (run.data.metrics && typeof run.data.metrics === 'object') {
+      return run.data.metrics[metricKey];
+    }
+    return undefined;
+  };
+
+  // Helper to get param value from run data
+  const getParamValue = (run: any, paramKey: string) => {
+    if (Array.isArray(run.data.params)) {
+      const param = run.data.params.find((p: any) => p.key === paramKey);
+      return param?.value;
+    } else if (run.data.params && typeof run.data.params === 'object') {
+      return run.data.params[paramKey];
+    }
+    return undefined;
+  };
+
   // Helper to get metric value with comparison
   const getMetricComparison = (metricKey: string) => {
     const values = selectedRunsData
-      .map(run => {
-        const rawValue = run.data.metrics[metricKey];
-        return typeof rawValue === 'object' && rawValue?.value !== undefined 
-          ? rawValue.value 
-          : rawValue;
-      })
+      .map(run => getMetricValue(run, metricKey))
       .filter(val => val !== undefined && typeof val === 'number');
     
     if (values.length === 0) return null;
@@ -110,18 +140,28 @@ export function RunComparison() {
                           <Clock className="h-3 w-3" />
                           {startTime}
                         </span>
-                        {run.data.tags?.['mlflow.user'] && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {run.data.tags['mlflow.user']}
-                          </span>
-                        )}
-                        {run.data.tags?.['mlflow.source.git.commit'] && (
-                          <span className="flex items-center gap-1">
-                            <GitBranch className="h-3 w-3" />
-                            {run.data.tags['mlflow.source.git.commit'].slice(0, 7)}
-                          </span>
-                        )}
+                        {(() => {
+                          const userTag = Array.isArray(run.data.tags) 
+                            ? run.data.tags.find((t: any) => t.key === 'mlflow.user')?.value
+                            : run.data.tags?.['mlflow.user'];
+                          return userTag ? (
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {userTag}
+                            </span>
+                          ) : null;
+                        })()}
+                        {(() => {
+                          const commitTag = Array.isArray(run.data.tags)
+                            ? run.data.tags.find((t: any) => t.key === 'mlflow.source.git.commit')?.value
+                            : run.data.tags?.['mlflow.source.git.commit'];
+                          return commitTag ? (
+                            <span className="flex items-center gap-1">
+                              <GitBranch className="h-3 w-3" />
+                              {commitTag.slice(0, 7)}
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -204,10 +244,7 @@ export function RunComparison() {
                               {metricKey}
                             </TableCell>
                             {selectedRunsData.map(run => {
-                              const rawValue = run.data.metrics[metricKey];
-                              const value = typeof rawValue === 'object' && rawValue?.value !== undefined 
-                                ? rawValue.value 
-                                : rawValue;
+                              const value = getMetricValue(run, metricKey);
                               const isMin = comparison && value === comparison.min;
                               const isMax = comparison && value === comparison.max;
                               
@@ -247,7 +284,7 @@ export function RunComparison() {
                             {paramKey}
                           </TableCell>
                           {selectedRunsData.map(run => {
-                            const value = run.data.params[paramKey];
+                            const value = getParamValue(run, paramKey);
                             
                             return (
                               <TableCell key={run.info.run_id} className="text-center">
