@@ -289,15 +289,38 @@ function ModelCard({
               <Info className="mr-2 h-4 w-4" />
               Details
             </Button>
-            {model.stage !== 'production' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onTransition('production')}
-              >
-                Deploy
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                toast.info(`Shipping ${model.model_name}...`);
+                // Execute ml ship command
+                fetch('/api/deployments/ship', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ model_name: model.model_name }),
+                }).then(res => {
+                  if (res.ok) {
+                    toast.success(`${model.model_name} shipped successfully!`);
+                  } else {
+                    toast.error('Failed to ship model');
+                  }
+                });
+              }}
+            >
+              <Package className="mr-2 h-4 w-4" />
+              Ship
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => {
+                window.location.href = '/deployments';
+              }}
+            >
+              <Rocket className="mr-2 h-4 w-4" />
+              Deploy
+            </Button>
             {model.stage === 'production' && (
               <Button
                 size="sm"

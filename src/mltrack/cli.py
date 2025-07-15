@@ -687,5 +687,105 @@ def main():
     cli()
 
 
+# Add intuitive shortcuts
+@click.command(name="save")
+@click.argument("name", required=False)
+@click.option("--run-id", help="Specific run ID to save")
+@click.option("--description", help="Model description")
+def save_shortcut(name: Optional[str], run_id: Optional[str], description: Optional[str]):
+    """Save the most recent model to the registry."""
+    from mltrack.deployment.cli_shortcuts import SmartCLI
+    smart_cli = SmartCLI()
+    smart_cli.save_model(name=name, run_id=run_id, description=description)
+
+
+@click.command(name="ship")
+@click.argument("model", required=False)
+@click.option("--gpu", is_flag=True, help="Include GPU support")
+@click.option("--push", is_flag=True, help="Push to registry after build")
+@click.option("--optimize/--no-optimize", default=True, help="Optimize for size")
+@click.option("--platform", multiple=True, help="Target platforms (e.g., linux/amd64)")
+@click.option("--registry", help="Container registry URL")
+def ship_shortcut(model: Optional[str], gpu: bool, push: bool, optimize: bool, platform: tuple, registry: Optional[str]):
+    """Build and ship a model as a container."""
+    from mltrack.deployment.cli_shortcuts import SmartCLI
+    smart_cli = SmartCLI()
+    smart_cli.ship_model(
+        model_name=model,
+        gpu=gpu,
+        push=push,
+        optimize=optimize,
+        platform=list(platform) if platform else None,
+        registry_url=registry,
+    )
+
+
+@click.command(name="serve")
+@click.argument("model", required=False)
+@click.option("--port", default=8000, help="Port to serve on")
+@click.option("--prod", is_flag=True, help="Production mode")
+@click.option("-d", "--detach", is_flag=True, help="Run in background")
+def serve_shortcut(model: Optional[str], port: int, prod: bool, detach: bool):
+    """Serve a model as an API."""
+    from mltrack.deployment.cli_shortcuts import SmartCLI
+    smart_cli = SmartCLI()
+    smart_cli.serve_model(model_name=model, port=port, production=prod, detach=detach)
+
+
+@click.command(name="try")
+@click.argument("model", required=False)
+@click.option("--port", default=8000, help="Port to use")
+def try_shortcut(model: Optional[str], port: int):
+    """Test a model interactively."""
+    from mltrack.deployment.cli_shortcuts import SmartCLI
+    smart_cli = SmartCLI()
+    smart_cli.try_model(model_name=model, port=port)
+
+
+@click.command(name="list")
+@click.option("--stage", type=click.Choice(["staging", "production", "archived"]), help="Filter by stage")
+def list_shortcut(stage: Optional[str]):
+    """List saved models."""
+    from mltrack.deployment.cli_shortcuts import SmartCLI
+    smart_cli = SmartCLI()
+    smart_cli.list_models(stage=stage)
+
+
+# Create the ml command group
+@click.group(name="ml")
+def ml_cli():
+    """MLTrack - Simple commands for ML deployment."""
+    pass
+
+
+# Add all shortcuts to ml group
+ml_cli.add_command(save_shortcut, name="save")
+ml_cli.add_command(ship_shortcut, name="ship")
+ml_cli.add_command(serve_shortcut, name="serve")
+ml_cli.add_command(try_shortcut, name="try")
+ml_cli.add_command(list_shortcut, name="list")
+
+# Also add existing track command for consistency
+@ml_cli.command(name="track")
+@click.argument("command", nargs=-1, required=True)
+@click.option("--name", help="Custom name for the run")
+@click.option("--tags", help="Comma-separated tags")
+def track_shortcut(command: tuple, name: Optional[str], tags: Optional[str]):
+    """Track a command execution."""
+    run(command, name, tags)
+
+
+# Update main to handle both mltrack and ml
+def main():
+    """Main entry point for the CLI."""
+    import sys
+    
+    # Check if called as 'ml'
+    if sys.argv[0].endswith('ml'):
+        ml_cli()
+    else:
+        cli()
+
+
 if __name__ == "__main__":
     main()

@@ -54,6 +54,12 @@ class MLTrackConfig(BaseModel):
         description="Automatically detect and configure ML frameworks"
     )
     
+    # Model registry settings
+    auto_register_models: bool = Field(
+        default=True,
+        description="Automatically register models returned from @track decorated functions"
+    )
+    
     # Notification settings
     slack_webhook: Optional[str] = Field(
         default=None,

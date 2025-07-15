@@ -263,6 +263,65 @@ class MLTracker:
                                     # Log traditional model info as well
                                     model_info = get_model_info(result)
                                     mlflow.log_dict(model_info, "model_info.json")
+                                    
+                                    # Auto-register model if configured
+                                    if self.config.auto_register_models:
+                                        logger.info(f"Auto-registration enabled, attempting to register model")
+                                        try:
+                                            # Log the model first
+                                            # Detect framework and log appropriately
+                                            module_name = str(type(result).__module__)
+                                            model_logged = False
+                                            
+                                            if "sklearn" in module_name:
+                                                try:
+                                                    import mlflow.sklearn as mlflow_sklearn
+                                                    mlflow_sklearn.log_model(result, "model")
+                                                    model_logged = True
+                                                except ImportError:
+                                                    pass
+                                            elif "torch" in module_name:
+                                                try:
+                                                    import mlflow.pytorch as mlflow_pytorch
+                                                    mlflow_pytorch.log_model(result, "model")
+                                                    model_logged = True
+                                                except ImportError:
+                                                    pass
+                                            elif "tensorflow" in module_name or "keras" in module_name:
+                                                try:
+                                                    import mlflow.tensorflow as mlflow_tensorflow
+                                                    mlflow_tensorflow.log_model(result, "model")
+                                                    model_logged = True
+                                                except ImportError:
+                                                    pass
+                                            
+                                            if not model_logged:
+                                                # Fallback to pyfunc
+                                                import mlflow.pyfunc as mlflow_pyfunc
+                                                mlflow_pyfunc.log_model("model", python_model=result)
+                                            
+                                            # Auto-register to MLTrack registry
+                                            if run_name:
+                                                from mltrack.model_registry import ModelRegistry
+                                                registry = ModelRegistry()
+                                                current_run = mlflow.active_run()
+                                                
+                                                # Prepare registration info
+                                                reg_result = registry.register_model(
+                                                    run_id=current_run.info.run_id,
+                                                    model_name=run_name,
+                                                    model_path="model",
+                                                    description=f"Auto-registered from @track decorator",
+                                                    stage="staging",
+                                                    task_type=introspector_tags.get("model.task_type", "unknown"),
+                                                    model_type=introspector_tags.get("model.type", "unknown"),
+                                                    framework=introspector_tags.get("model.framework", "unknown")
+                                                )
+                                                logger.info(f"Model auto-registered: {run_name} v{reg_result['version']}")
+                                                mlflow.set_tag("mltrack.auto_registered", "true")
+                                                mlflow.set_tag("mltrack.model_version", reg_result['version'])
+                                        except Exception as e:
+                                            logger.error(f"Failed to auto-register model: {e}", exc_info=True)
                                 except Exception as e:
                                     logger.warning(f"Failed to log model info: {e}")
                             

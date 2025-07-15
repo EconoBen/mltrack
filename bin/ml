@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+"""Intuitive ML command shortcut."""
+
+import sys
+from mltrack.cli import main
+
+if __name__ == "__main__":
+    # Ensure sys.argv[0] ends with 'ml' so the CLI knows to use shortcuts
+    sys.argv[0] = "ml"
+    main()

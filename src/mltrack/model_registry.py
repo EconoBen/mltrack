@@ -107,7 +107,10 @@ class ModelRegistry:
         stage: str = "staging",
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        task_type: Optional[str] = None,
+        model_type: Optional[str] = None,
+        framework: Optional[str] = None
     ) -> Dict[str, Any]:
         """Register a model from a run to the model registry.
         
@@ -140,11 +143,11 @@ class ModelRegistry:
             "params": dict(run.data.params),
             "git_commit": run.data.tags.get("mlflow.source.git.commit", ""),
             "user": run.data.tags.get("mlflow.user", ""),
-            "framework": run.data.tags.get("mlflow.source.type", ""),
+            "framework": framework or run.data.tags.get("model.framework", run.data.tags.get("mlflow.source.type", "unknown")),
             "custom_metadata": metadata or {},
-            # Model type and task detection (will be enhanced later)
-            "model_type": run.data.tags.get("mltrack.algorithm", "unknown"),
-            "task_type": run.data.tags.get("mltrack.task", "unknown")
+            # Model type and task detection - use provided values or fall back to tags
+            "model_type": model_type or run.data.tags.get("model.type", run.data.tags.get("mltrack.algorithm", "unknown")),
+            "task_type": task_type or run.data.tags.get("model.task_type", run.data.tags.get("mltrack.task", "unknown"))
         }
         
         # Generate model version
