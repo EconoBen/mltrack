@@ -144,6 +144,31 @@ export function DashboardOverview() {
   const { selectExperiment } = useMLflowStore();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   
+  // Fetch stats for all experiments to get type counts
+  const { data: experimentStats } = useQuery({
+    queryKey: ['all-experiment-stats', experiments?.map(e => e.experiment_id)],
+    queryFn: async () => {
+      if (!experiments || experiments.length === 0) return { ml: 0, llm: 0, mixed: 0 };
+      
+      const client = new MLflowClient({ baseUrl: process.env.NEXT_PUBLIC_MLFLOW_URL || '/api/mlflow' });
+      const statsPromises = experiments.map(exp => 
+        client.getExperimentStats(exp.experiment_id).catch(() => null)
+      );
+      
+      const allStats = await Promise.all(statsPromises);
+      
+      const counts = { ml: 0, llm: 0, mixed: 0 };
+      allStats.forEach(stats => {
+        if (stats && stats.type) {
+          counts[stats.type]++;
+        }
+      });
+      
+      return counts;
+    },
+    enabled: !!experiments && experiments.length > 0,
+  });
+  
   const handleExperimentSelect = (experimentId: string) => {
     router.push(`/experiments/${experimentId}`);
   };
@@ -215,7 +240,7 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {experiments.filter(e => e.name.includes('fraud') || e.name.includes('revenue') || e.name.includes('customer')).length}
+              {experimentStats?.ml || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Traditional ML models
@@ -230,7 +255,7 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {experiments.filter(e => e.name.includes('llm')).length}
+              {experimentStats?.llm || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Language model tracking

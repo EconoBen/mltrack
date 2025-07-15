@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
+import { LiveIndicator } from '@/components/live-indicator';
 import { 
   Activity, Home, FlaskConical, Package, Rocket, 
   FileBarChart, Settings, Search, BarChart3 
@@ -65,6 +66,7 @@ export function GlobalNav() {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
+            <LiveIndicator />
             <Button variant="ghost" size="sm" className="gap-2">
               <Search className="h-4 w-4" />
               <span className="hidden lg:inline">Search</span>

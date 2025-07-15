@@ -21,6 +21,9 @@ import { motion } from 'framer-motion';
 import { format, subDays, startOfDay } from 'date-fns';
 import { CostDashboard } from '@/components/analytics/cost-dashboard';
 import { PerformanceDashboard } from '@/components/analytics/performance-dashboard';
+import { RealtimeDashboard } from '@/components/analytics/realtime-dashboard';
+import { TokenUsageDashboard } from '@/components/analytics/token-usage-dashboard';
+import { ModelComparisonDashboard } from '@/components/analytics/model-comparison-dashboard';
 import { useExperiments } from '@/lib/hooks/use-mlflow';
 import { MLflowClient } from '@/lib/api/mlflow';
 
@@ -253,12 +256,14 @@ export default function AnalyticsPage() {
 
         {/* Main Charts */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="cost">Cost Analysis</TabsTrigger>
+            <TabsTrigger value="realtime">Real-time</TabsTrigger>
+            <TabsTrigger value="cost">Cost</TabsTrigger>
+            <TabsTrigger value="tokens">Tokens</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="models">Model Comparison</TabsTrigger>
-            <TabsTrigger value="users">User Activity</TabsTrigger>
+            <TabsTrigger value="models">Models</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -369,8 +374,21 @@ export default function AnalyticsPage() {
             )}
           </TabsContent>
 
+          <TabsContent value="realtime" className="space-y-4">
+            <RealtimeDashboard />
+          </TabsContent>
+
           <TabsContent value="cost" className="space-y-4">
             <CostDashboard 
+              experimentIds={selectedExperiment === 'all' 
+                ? experiments?.map(e => e.experiment_id) 
+                : [selectedExperiment]
+              } 
+            />
+          </TabsContent>
+
+          <TabsContent value="tokens" className="space-y-4">
+            <TokenUsageDashboard 
               experimentIds={selectedExperiment === 'all' 
                 ? experiments?.map(e => e.experiment_id) 
                 : [selectedExperiment]
@@ -388,34 +406,12 @@ export default function AnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="models" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Model Performance Comparison</CardTitle>
-                <CardDescription>
-                  Compare models across multiple dimensions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <RadarChart data={[
-                    { metric: 'Cost Efficiency', 'GPT-4': 65, 'Claude 3': 85, 'GPT-3.5': 95 },
-                    { metric: 'Latency', 'GPT-4': 70, 'Claude 3': 80, 'GPT-3.5': 90 },
-                    { metric: 'Quality', 'GPT-4': 95, 'Claude 3': 92, 'GPT-3.5': 75 },
-                    { metric: 'Token Limit', 'GPT-4': 85, 'Claude 3': 95, 'GPT-3.5': 70 },
-                    { metric: 'Reliability', 'GPT-4': 90, 'Claude 3': 88, 'GPT-3.5': 85 },
-                  ]}>
-                    <PolarGrid strokeDasharray="3 3" />
-                    <PolarAngleAxis dataKey="metric" className="text-xs" />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                    <Radar name="GPT-4" dataKey="GPT-4" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-                    <Radar name="Claude 3" dataKey="Claude 3" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
-                    <Radar name="GPT-3.5" dataKey="GPT-3.5" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.3} />
-                    <Legend />
-                    <Tooltip />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <ModelComparisonDashboard 
+              experimentIds={selectedExperiment === 'all' 
+                ? experiments?.map(e => e.experiment_id) 
+                : [selectedExperiment]
+              } 
+            />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">

@@ -7,8 +7,72 @@ from typing import Optional
 import click
 import threading
 import time
+import signal
+import psutil
 
 from mltrack.config import MLTrackConfig
+
+
+def kill_process_on_port(port: int):
+    """Kill any process running on the specified port."""
+    try:
+        # Find processes using the port
+        for conn in psutil.net_connections():
+            if conn.laddr.port == port and conn.status == 'LISTEN':
+                try:
+                    process = psutil.Process(conn.pid)
+                    process_name = process.name()
+                    
+                    # Only kill if it's an MLflow or Python process
+                    if 'mlflow' in process_name.lower() or 'python' in process_name.lower():
+                        click.echo(f"🔫 Killing existing process on port {port} (PID: {conn.pid})")
+                        process.terminate()
+                        
+                        # Wait up to 5 seconds for graceful termination
+                        try:
+                            process.wait(timeout=5)
+                        except psutil.TimeoutExpired:
+                            # Force kill if it didn't terminate gracefully
+                            process.kill()
+                            process.wait()
+                        
+                        click.echo(f"✅ Successfully killed process on port {port}")
+                        # Give OS time to release the port
+                        time.sleep(1)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+    except Exception as e:
+        # If psutil fails, try using lsof as fallback
+        try:
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True
+            )
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        # Check if it's an MLflow-related process before killing
+                        ps_result = subprocess.run(
+                            ["ps", "-p", pid, "-o", "comm="],
+                            capture_output=True,
+                            text=True
+                        )
+                        if 'python' in ps_result.stdout.lower() or 'mlflow' in ps_result.stdout.lower():
+                            click.echo(f"🔫 Killing existing process on port {port} (PID: {pid})")
+                            os.kill(int(pid), signal.SIGTERM)
+                            time.sleep(1)
+                            # Force kill if still running
+                            try:
+                                os.kill(int(pid), signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                            click.echo(f"✅ Successfully killed process on port {port}")
+                    except:
+                        pass
+        except:
+            pass
 
 
 def launch_mlflow_ui(port: int = 5000, host: str = "127.0.0.1"):
@@ -18,6 +82,11 @@ def launch_mlflow_ui(port: int = 5000, host: str = "127.0.0.1"):
         port: Port to run the UI on (default: 5000)
         host: Host to bind the UI to (default: 127.0.0.1)
     """
+    # Kill any existing process on the port
+    if not check_port_available(port):
+        click.echo(f"⚠️  Port {port} is already in use")
+        kill_process_on_port(port)
+    
     click.echo("🚀 Launching MLflow UI...")
     click.echo(f"   Access at: http://{host}:{port}")
     click.echo("   Press Ctrl+C to stop")
@@ -73,22 +142,19 @@ def launch_modern_ui(mlflow_port: int = 5000, ui_port: int = 3000, config: Optio
         click.echo("📦 Installing UI dependencies...")
         subprocess.run(["npm", "install"], cwd=ui_path, check=True)
     
-    # Check if MLflow port is available, find alternative if not
+    # Check if MLflow port is available
     actual_mlflow_port = mlflow_port
+    mlflow_process = None
+    
     if not check_port_available(mlflow_port):
-        # Check if MLflow is actually running on this port
-        import requests
-        try:
-            response = requests.get(f"http://localhost:{mlflow_port}/health", timeout=1)
-            if response.status_code == 200:
-                click.echo(f"✅ MLflow server already running on port {mlflow_port}")
-                mlflow_process = None
-            else:
-                raise Exception("Port in use but not MLflow")
-        except:
-            # Port is in use but not by MLflow, find another port
+        click.echo(f"⚠️  Port {mlflow_port} is already in use")
+        kill_process_on_port(mlflow_port)
+        
+        # Check again after killing
+        if not check_port_available(mlflow_port):
+            # Still in use, something else grabbed it quickly
             actual_mlflow_port = find_available_port(mlflow_port + 1)
-            click.echo(f"⚠️  Port {mlflow_port} is in use, using port {actual_mlflow_port} for MLflow")
+            click.echo(f"⚠️  Port {mlflow_port} still in use, using port {actual_mlflow_port} for MLflow")
             mlflow_port = actual_mlflow_port
     
     # Start MLflow server if needed

@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Breadcrumb } from '@/components/breadcrumb';
 import { 
   Activity, Brain, DollarSign, BarChart, GitCompare, 
-  Home, Play, ArrowLeft, RefreshCw, Download, Share2
+  Home, Play, ArrowLeft, RefreshCw, Download, Share2,
+  Package, FolderOpen, Settings
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { MLflowClient } from '@/lib/api/mlflow';
@@ -78,15 +79,35 @@ export default function ExperimentDetailPage({ params }: PageProps) {
     <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           {/* Experiment Header */}
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              {experimentType === 'llm' && <Brain className="h-8 w-8 text-purple-600" />}
-              {experimentType === 'ml' && <BarChart className="h-8 w-8 text-blue-600" />}
-              {experiment.name}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              {experiment.tags?.description || 'No description available'}
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                {experimentType === 'llm' && <Brain className="h-8 w-8 text-purple-600" />}
+                {experimentType === 'ml' && <BarChart className="h-8 w-8 text-blue-600" />}
+                {experiment.name}
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                {experiment.tags?.description || 'No description available'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={refetchRuns}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShare}>
+                <Share2 className="h-4 w-4 mr-1" />
+                Share
+              </Button>
+              <Button size="sm" onClick={handleNewRun}>
+                <Play className="h-4 w-4 mr-1" />
+                New Run
+              </Button>
+            </div>
           </div>
 
           {/* Stats Overview */}
@@ -170,6 +191,18 @@ export default function ExperimentDetailPage({ params }: PageProps) {
                   LLM Costs
                 </TabsTrigger>
               )}
+              <TabsTrigger value="models" className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Models
+              </TabsTrigger>
+              <TabsTrigger value="artifacts" className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Artifacts
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="runs" className="space-y-4">
@@ -209,6 +242,124 @@ export default function ExperimentDetailPage({ params }: PageProps) {
                 <LLMCostDashboard />
               </TabsContent>
             )}
+
+            <TabsContent value="models" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Registered Models</CardTitle>
+                  <CardDescription>
+                    Models trained in this experiment that have been registered to the model registry
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No models registered from this experiment yet</p>
+                    <Button variant="outline" className="mt-4">
+                      Register a Model
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="artifacts" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Experiment Artifacts</CardTitle>
+                  <CardDescription>
+                    Browse and download artifacts from experiment runs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">models/</p>
+                          <p className="text-sm text-muted-foreground">12 items</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">metrics/</p>
+                          <p className="text-sm text-muted-foreground">24 items</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">plots/</p>
+                          <p className="text-sm text-muted-foreground">8 items</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Experiment Settings</CardTitle>
+                  <CardDescription>
+                    Configure experiment properties and permissions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Experiment Name</h3>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={experiment.name}
+                        className="flex-1 px-3 py-2 border rounded-md"
+                        readOnly
+                      />
+                      <Button variant="outline">Edit</Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Description</h3>
+                    <textarea 
+                      className="w-full px-3 py-2 border rounded-md"
+                      rows={3}
+                      placeholder="Add a description for this experiment..."
+                      defaultValue={experiment.tags?.description || ''}
+                    />
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Lifecycle Stage</h3>
+                    <select className="px-3 py-2 border rounded-md">
+                      <option value="active">Active</option>
+                      <option value="deleted">Deleted</option>
+                    </select>
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <Button>Save Changes</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </main>

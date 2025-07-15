@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useExperiments } from '@/lib/hooks/use-mlflow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/breadcrumb';
 import { ModelTypeFilter } from '@/components/model-type-filter';
+import { UserFilter } from '@/components/user-filter';
 import { 
   Activity, Search, Filter, Grid3X3, List, Calendar,
   BarChart, Brain, Sparkles, Home, RefreshCw
@@ -19,6 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { MLflowClient } from '@/lib/api/mlflow';
+import { useUsers } from '@/lib/hooks/use-users';
 
 type ViewMode = 'grid' | 'list';
 type ExperimentType = 'all' | 'ml' | 'llm' | 'mixed';
@@ -26,6 +28,7 @@ type ExperimentType = 'all' | 'ml' | 'llm' | 'mixed';
 export default function ExperimentsPage() {
   const router = useRouter();
   const { data: experiments, isLoading, refetch } = useExperiments();
+  const { data: usersData } = useUsers();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ExperimentType>('all');
@@ -36,8 +39,13 @@ export default function ExperimentsPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  
+  // User filters
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [showOnlyMyRuns, setShowOnlyMyRuns] = useState(false);
 
-  // Filter experiments
+  // Filter experiments with user information
   const filteredExperiments = experiments?.filter(exp => {
     // Search filter
     if (searchQuery && !exp.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -49,7 +57,8 @@ export default function ExperimentsPage() {
       return false;
     }
     
-    // Type filter will be implemented with the stats query
+    // User/Team filter will be applied at the component level since we need run data
+    // For now, we'll pass all experiments and let the components handle user filtering
     return true;
   }) || [];
 
@@ -110,6 +119,16 @@ export default function ExperimentsPage() {
                     onTasksChange={setSelectedTasks}
                   />
 
+                  <UserFilter
+                    selectedUsers={selectedUsers}
+                    selectedTeams={selectedTeams}
+                    onUsersChange={setSelectedUsers}
+                    onTeamsChange={setSelectedTeams}
+                    availableUsers={usersData?.users || []}
+                    showOnlyMyRuns={showOnlyMyRuns}
+                    onToggleMyRuns={setShowOnlyMyRuns}
+                  />
+
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[140px] h-8">
                       <SelectValue />
@@ -159,7 +178,14 @@ export default function ExperimentsPage() {
           {/* Results Summary */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing {sortedExperiments.length} of {experiments?.length || 0} experiments
+              {viewMode === 'grid' ? (
+                <>Showing experiments ({sortedExperiments.length} total)</>
+              ) : (
+                <>Showing {sortedExperiments.length} of {experiments?.length || 0} experiments</>
+              )}
+              {(selectedUsers.length > 0 || selectedTeams.length > 0 || showOnlyMyRuns) && (
+                <span className="text-primary"> • Filtered by user</span>
+              )}
             </p>
           </div>
 
@@ -186,6 +212,9 @@ export default function ExperimentsPage() {
                       key={experiment.experiment_id}
                       experiment={experiment}
                       onClick={() => handleExperimentClick(experiment.experiment_id)}
+                      selectedUsers={selectedUsers}
+                      selectedTeams={selectedTeams}
+                      showOnlyMyRuns={showOnlyMyRuns}
                     />
                   ))}
                 </div>
@@ -193,6 +222,9 @@ export default function ExperimentsPage() {
                 <ExperimentList
                   experiments={sortedExperiments}
                   onExperimentClick={handleExperimentClick}
+                  selectedUsers={selectedUsers}
+                  selectedTeams={selectedTeams}
+                  showOnlyMyRuns={showOnlyMyRuns}
                 />
               )}
             </>
@@ -203,14 +235,125 @@ export default function ExperimentsPage() {
 }
 
 // Experiment Card Component
-function ExperimentCard({ experiment, onClick }: { experiment: any; onClick: () => void }) {
-  const { data: stats } = useQuery({
+function ExperimentCard({ 
+  experiment, 
+  onClick, 
+  selectedUsers,
+  selectedTeams,
+  showOnlyMyRuns 
+}: { 
+  experiment: any; 
+  onClick: () => void;
+  selectedUsers: string[];
+  selectedTeams: string[];
+  showOnlyMyRuns: boolean;
+}) {
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['experiment-stats', experiment.experiment_id],
     queryFn: async () => {
       const client = new MLflowClient({ baseUrl: process.env.NEXT_PUBLIC_MLFLOW_URL || '/api/mlflow' });
       return client.getExperimentStats(experiment.experiment_id);
     },
   });
+
+  // Fetch run data to check user information
+  const { data: runData, isLoading: runDataLoading } = useQuery({
+    queryKey: ['experiment-runs-users', experiment.experiment_id],
+    queryFn: async () => {
+      const response = await fetch('/api/mlflow/api/2.0/mlflow/runs/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          experiment_ids: [experiment.experiment_id],
+          max_results: 100,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to fetch runs');
+      const data = await response.json();
+      return data.runs || [];
+    },
+    enabled: selectedUsers.length > 0 || selectedTeams.length > 0 || showOnlyMyRuns,
+  });
+
+  // Check if experiment should be shown based on user filters
+  const shouldShow = React.useMemo(() => {
+    if (!selectedUsers.length && !selectedTeams.length && !showOnlyMyRuns) {
+      return true;
+    }
+
+    // If filters are active but data is still loading, hide the experiment
+    // This prevents flashing of experiments that will be filtered out
+    if (runDataLoading || !runData) {
+      return false;
+    }
+    
+    // If no runs in experiment, hide it when filters are active
+    if (runData.length === 0) {
+      return false;
+    }
+
+    // Get current user ID from localStorage
+    const currentUserId = (() => {
+      try {
+        const storedUser = localStorage.getItem('mltrack_current_user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          return user.id;
+        }
+      } catch (e) {}
+      return null;
+    })();
+
+    // Check if any run matches the filter
+    return runData.some((run: any) => {
+      const tags = run.data?.tags || [];
+      let userTags: Record<string, string> = {};
+      
+      // Extract user tags
+      if (Array.isArray(tags)) {
+        for (const tag of tags) {
+          if (tag.key?.startsWith('mltrack.user.') || tag.key === 'user') {
+            userTags[tag.key] = tag.value;
+          }
+        }
+      }
+      
+      const userId = userTags['mltrack.user.id'];
+      const userTeam = userTags['mltrack.user.team'];
+      
+      // Check filters
+      if (showOnlyMyRuns && userId !== currentUserId) {
+        return false;
+      }
+      if (selectedUsers.length > 0 && !selectedUsers.includes(userId)) {
+        return false;
+      }
+      if (selectedTeams.length > 0 && (!userTeam || !selectedTeams.includes(userTeam))) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [runData, selectedUsers, selectedTeams, showOnlyMyRuns, runDataLoading]);
+
+  // Show loading state while checking user filters
+  if ((selectedUsers.length > 0 || selectedTeams.length > 0 || showOnlyMyRuns) && runDataLoading) {
+    return (
+      <Card className="opacity-50 animate-pulse">
+        <CardHeader>
+          <div className="h-6 w-3/4 bg-muted rounded" />
+          <div className="h-4 w-1/2 bg-muted rounded mt-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="h-20 bg-muted rounded" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!shouldShow) {
+    return null;
+  }
 
   const typeConfig = {
     ml: { icon: BarChart, color: 'text-blue-600', bg: 'bg-blue-500/10' },
@@ -264,10 +407,16 @@ function ExperimentCard({ experiment, onClick }: { experiment: any; onClick: () 
 // Experiment List Component
 function ExperimentList({ 
   experiments, 
-  onExperimentClick 
+  onExperimentClick,
+  selectedUsers,
+  selectedTeams,
+  showOnlyMyRuns
 }: { 
   experiments: any[]; 
   onExperimentClick: (id: string) => void;
+  selectedUsers: string[];
+  selectedTeams: string[];
+  showOnlyMyRuns: boolean;
 }) {
   return (
     <Card>
@@ -288,6 +437,9 @@ function ExperimentList({
                 key={experiment.experiment_id}
                 experiment={experiment}
                 onClick={() => onExperimentClick(experiment.experiment_id)}
+                selectedUsers={selectedUsers}
+                selectedTeams={selectedTeams}
+                showOnlyMyRuns={showOnlyMyRuns}
               />
             ))}
           </tbody>
@@ -297,7 +449,19 @@ function ExperimentList({
   );
 }
 
-function ExperimentListRow({ experiment, onClick }: { experiment: any; onClick: () => void }) {
+function ExperimentListRow({ 
+  experiment, 
+  onClick,
+  selectedUsers,
+  selectedTeams,
+  showOnlyMyRuns
+}: { 
+  experiment: any; 
+  onClick: () => void;
+  selectedUsers: string[];
+  selectedTeams: string[];
+  showOnlyMyRuns: boolean;
+}) {
   const { data: stats } = useQuery({
     queryKey: ['experiment-stats', experiment.experiment_id],
     queryFn: async () => {
@@ -305,6 +469,95 @@ function ExperimentListRow({ experiment, onClick }: { experiment: any; onClick: 
       return client.getExperimentStats(experiment.experiment_id);
     },
   });
+
+  // Fetch run data to check user information (same logic as ExperimentCard)
+  const { data: runData, isLoading: runDataLoading } = useQuery({
+    queryKey: ['experiment-runs-users', experiment.experiment_id],
+    queryFn: async () => {
+      const response = await fetch('/api/mlflow/api/2.0/mlflow/runs/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          experiment_ids: [experiment.experiment_id],
+          max_results: 100,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to fetch runs');
+      const data = await response.json();
+      return data.runs || [];
+    },
+    enabled: selectedUsers.length > 0 || selectedTeams.length > 0 || showOnlyMyRuns,
+  });
+
+  // Check if experiment should be shown based on user filters
+  const shouldShow = React.useMemo(() => {
+    if (!selectedUsers.length && !selectedTeams.length && !showOnlyMyRuns) {
+      return true;
+    }
+
+    // If filters are active but data is still loading, hide the experiment
+    // This prevents flashing of experiments that will be filtered out
+    if (runDataLoading || !runData) {
+      return false;
+    }
+    
+    // If no runs in experiment, hide it when filters are active
+    if (runData.length === 0) {
+      return false;
+    }
+
+    // Get current user ID from localStorage
+    const currentUserId = (() => {
+      try {
+        const storedUser = localStorage.getItem('mltrack_current_user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          return user.id;
+        }
+      } catch (e) {}
+      return null;
+    })();
+
+    // Check if any run matches the filter
+    return runData.some((run: any) => {
+      const tags = run.data?.tags || [];
+      let userTags: Record<string, string> = {};
+      
+      // Extract user tags
+      if (Array.isArray(tags)) {
+        for (const tag of tags) {
+          if (tag.key?.startsWith('mltrack.user.') || tag.key === 'user') {
+            userTags[tag.key] = tag.value;
+          }
+        }
+      }
+      
+      const userId = userTags['mltrack.user.id'];
+      const userTeam = userTags['mltrack.user.team'];
+      
+      // Check filters
+      if (showOnlyMyRuns && userId !== currentUserId) {
+        return false;
+      }
+      if (selectedUsers.length > 0 && !selectedUsers.includes(userId)) {
+        return false;
+      }
+      if (selectedTeams.length > 0 && (!userTeam || !selectedTeams.includes(userTeam))) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [runData, selectedUsers, selectedTeams, showOnlyMyRuns, runDataLoading]);
+
+  // For list view, just hide the row during loading
+  if ((selectedUsers.length > 0 || selectedTeams.length > 0 || showOnlyMyRuns) && runDataLoading) {
+    return null;
+  }
+
+  if (!shouldShow) {
+    return null;
+  }
 
   const typeConfig = {
     ml: { icon: BarChart, label: 'ML' },
