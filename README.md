@@ -1,520 +1,271 @@
-# mltrack - Universal ML Tracking Tool
+<div align="center">
+  <h1>🚀 MLTrack</h1>
+  
+  <p>
+    <strong>Modern machine learning experiment tracking and deployment platform</strong>
+  </p>
+  
+  <p>
+    <a href="https://github.com/EconoBen/mltrack/actions">
+      <img src="https://github.com/EconoBen/mltrack/actions/workflows/test.yml/badge.svg" alt="Test Status">
+    </a>
+    <a href="https://pypi.org/project/mltrack/">
+      <img src="https://img.shields.io/pypi/v/mltrack.svg" alt="PyPI Version">
+    </a>
+    <a href="https://github.com/EconoBen/mltrack/blob/main/LICENSE">
+      <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+    </a>
+    <a href="https://mltrack.readthedocs.io">
+      <img src="https://readthedocs.org/projects/mltrack/badge/?version=latest" alt="Documentation">
+    </a>
+    <a href="https://github.com/EconoBen/mltrack/stargazers">
+      <img src="https://img.shields.io/github/stars/EconoBen/mltrack?style=social" alt="GitHub Stars">
+    </a>
+  </p>
+  
+  <p>
+    <a href="#-features">Features</a> •
+    <a href="#-quick-start">Quick Start</a> •
+    <a href="#-documentation">Documentation</a> •
+    <a href="#-examples">Examples</a> •
+    <a href="#-contributing">Contributing</a>
+  </p>
+</div>
 
-🚀 **Zero-config ML experiment tracking that just works**
+---
 
-mltrack makes ML experiment tracking effortless. It automatically detects your ML framework, captures all relevant metrics, and integrates with your existing workflow.
+## 🎯 Why MLTrack?
 
-## Why mltrack?
+**MLTrack** simplifies machine learning experiment tracking and model deployment. Built on MLflow's robust foundation, it provides a modern interface and streamlined workflows that make ML development a joy.
 
-- **Zero Configuration**: Just add `@track` to your training function
-- **Auto-Detection**: Automatically configures for sklearn, PyTorch, TensorFlow, and more
-- **Git Integration**: Tracks code version, uncommitted changes, and links to commits
-- **Team Friendly**: Built-in support for shared experiments and notifications
-- **UV First**: Optimized for UV package manager for fast, reliable environments
+```python
+from mltrack import track
 
-## Installation
+@track
+def train_model(learning_rate=0.01, batch_size=32):
+    # Your training code here
+    model = train(learning_rate, batch_size)
+    return model
 
-### Recommended: Using UV (fastest)
-
-```bash
-# Install UV if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install mltrack as a tool
-uvx mltrack
-
-# Or add to your project
-uv add mltrack
+# That's it! Experiments are automatically tracked 🎉
 ```
 
-### Alternative: Using pip
+## ✨ Features
+
+### 🚀 **Zero-Configuration Tracking**
+- Simple `@track` decorator automatically captures metrics, parameters, and artifacts
+- Intelligent framework detection (PyTorch, TensorFlow, scikit-learn, XGBoost, and more)
+- No boilerplate code required
+
+### 💰 **LLM Cost Tracking**
+- Track token usage and costs for OpenAI, Anthropic, and other providers
+- Monitor spending across experiments and teams
+- Set budget alerts and limits
+
+### 🎨 **Beautiful Modern UI**
+- Next.js 15 powered interface with real-time updates
+- Interactive visualizations for metrics and comparisons
+- Dark mode support
+
+### 🚢 **One-Click Deployment**
+- Deploy models to Modal, AWS Lambda, or containers
+- Automatic API generation with FastAPI
+- Built-in load balancing and scaling
+
+### 👥 **Team Collaboration**
+- Multi-user support with role-based access
+- Shared experiments and model registry
+- Comments and annotations
+
+### 📊 **Advanced Analytics**
+- Hyperparameter importance analysis
+- Automatic experiment comparison
+- Custom dashboards and reports
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
 pip install mltrack
 ```
 
-> ⚠️ **Note**: We strongly recommend using UV for better performance and reproducibility. mltrack will warn when not running in a UV environment.
+### Basic Usage
 
-## Quick Start
+```python
+from mltrack import track, log_metric
+import numpy as np
 
-### 1. Basic Usage
+@track
+def train_model(n_estimators=100, max_depth=10):
+    # Simulate training
+    for epoch in range(10):
+        loss = np.random.random() * (0.1 / (epoch + 1))
+        log_metric("loss", loss, step=epoch)
+    
+    accuracy = 0.85 + np.random.random() * 0.1
+    log_metric("accuracy", accuracy)
+    
+    return {"model": "trained_model_data"}
 
+# Run experiment
+train_model(n_estimators=150, max_depth=12)
+```
+
+### Start the UI
+
+```bash
+mltrack ui
+```
+
+Navigate to http://localhost:3000 to see your experiments!
+
+### Deploy a Model
+
+```bash
+# Deploy the best model from an experiment
+mltrack deploy --experiment my_experiment --platform modal
+
+# Or deploy a specific run
+mltrack deploy --run-id abc123 --platform lambda
+```
+
+## 📚 Documentation
+
+- **[Getting Started Guide](docs/getting-started.md)** - Set up MLTrack in 5 minutes
+- **[User Guide](docs/user-guide.md)** - Comprehensive feature documentation
+- **[API Reference](docs/api-reference.md)** - Detailed API documentation
+- **[Deployment Guide](docs/deployment.md)** - Deploy models to production
+- **[Examples](examples/)** - Sample projects and notebooks
+
+## 🎓 Examples
+
+### Computer Vision
 ```python
 from mltrack import track
+import torch
+import torchvision
 
-@track  # That's it!
-def train_model(X, y, learning_rate=0.01):
-    from sklearn.ensemble import RandomForestClassifier
-    
-    model = RandomForestClassifier(n_estimators=100)
-    model.fit(X, y)
-    
+@track(project="image-classification")
+def train_resnet(learning_rate=0.001, epochs=10):
+    model = torchvision.models.resnet18(pretrained=True)
+    # Training code...
     return model
-
-# Your experiment is automatically tracked!
-model = train_model(X_train, y_train)
 ```
 
-### 2. Using Context Manager
-
+### Natural Language Processing
 ```python
-from mltrack import track_context
-import mlflow
+from mltrack import track
+from transformers import AutoModelForSequenceClassification
 
-with track_context("data-preprocessing"):
-    # Your preprocessing code
-    processed_data = preprocess(raw_data)
-    
-    # Log custom metrics
-    mlflow.log_metric("num_samples", len(processed_data))
-    mlflow.log_metric("num_features", processed_data.shape[1])
+@track(project="sentiment-analysis") 
+def fine_tune_bert(model_name="bert-base-uncased", batch_size=16):
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    # Fine-tuning code...
+    return model
 ```
 
-### 3. CLI Usage
-
-```bash
-# Initialize mltrack in your project
-mltrack init
-
-# Run any Python script with tracking
-mltrack run python train.py
-
-# Launch experiment tracking UI
-mltrack ui                    # Launches MLflow UI
-mltrack ui --port 5001       # Use a different port
-
-# Check your setup
-mltrack doctor
-
-# View the demo
-mltrack demo
-```
-
-## Features
-
-### 🔍 Auto-Detection
-- Automatically detects and configures for sklearn, PyTorch, TensorFlow, XGBoost, and more
-- **NEW**: Full support for LLM frameworks - OpenAI, Anthropic, LangChain, LlamaIndex, and more
-- No manual configuration needed
-
-### 📊 Comprehensive Tracking
-- Model parameters and hyperparameters
-- Training metrics and artifacts
-- System information (Python version, dependencies)
-- Git information (commit, branch, uncommitted changes)
-- **NEW**: LLM-specific tracking:
-  - Prompt and response logging
-  - Token usage tracking
-  - Cost estimation for popular models
-  - Multi-turn conversation support
-  - Streaming response support
-
-### 📦 Model Registry
-- **NEW**: Register trained models with versioning and staging
-- S3 backend support for model storage (optional)
-- Model stage management (staging → production → archived)
-- Generate Python code to load and use models
-- Track model lineage and metadata
-- Modern UI for model management
-
-### 👥 Team Features
-- Shared MLflow server configuration
-- Team namespaces for experiments
-- Slack/Teams notifications for completed runs
-- Automatic experiment comparison
-
-### 🔗 Integrations
-- **GitHub**: Automatic PR comments with experiment results
-- **Linear**: Link experiments to tasks
-- **Jupyter**: Auto-track notebook executions
-- **VS Code**: Extension for one-click tracking
-
-## Configuration
-
-Create a `.mltrack.yml` file in your project root:
-
-```yaml
-# Team settings
-team_name: ml-team
-experiment_name: my-project/experiments
-
-# MLflow server (optional)
-tracking_uri: http://mlflow.company.com:5000
-
-# Notifications (optional)
-slack_webhook: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-
-# Environment settings
-require_uv: false  # Set to true to enforce UV usage
-warn_non_uv: true  # Show warning when not using UV
-
-# Auto-logging settings
-auto_log_git: true
-auto_log_pip: true
-auto_detect_frameworks: true
-
-# LLM tracking settings
-llm_tracking_enabled: true
-llm_log_prompts: true
-llm_log_responses: true
-llm_track_token_usage: true
-llm_track_costs: true
-llm_token_limit_warning: 100000  # Warn at 100k tokens
-llm_cost_limit_warning: 10.0  # Warn at $10 USD
-```
-
-## LLM Tracking Features 🤖
-
-### Track OpenAI API Calls
-
+### LLM Applications
 ```python
-from mltrack import track_llm_context
+from mltrack import track, log_llm_usage
 import openai
 
-# Automatic tracking with context manager
-with track_llm_context("chat-session", model="gpt-4", provider="openai") as tracker:
-    client = openai.OpenAI()
-    response = client.chat.completions.create(
+@track(project="rag-system")
+def test_rag_pipeline(temperature=0.7, top_k=5):
+    # Your RAG implementation
+    response = openai.ChatCompletion.create(
         model="gpt-4",
-        messages=[{"role": "user", "content": "Hello!"}]
+        messages=[{"role": "user", "content": "Test query"}],
+        temperature=temperature
     )
     
-    # Automatic logging of prompts, responses, and token usage
-    tracker.log_prompt_response(
-        prompt=[{"role": "user", "content": "Hello!"}],
-        response=response.choices[0].message.content,
-        model="gpt-4",
-        provider="openai",
-        token_usage={
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-        }
-    )
-```
-
-### Track Anthropic Claude
-
-```python
-import anthropic
-
-with track_llm_context("claude-chat", model="claude-3-haiku", provider="anthropic") as tracker:
-    client = anthropic.Anthropic()
-    message = client.messages.create(
-        model="claude-3-haiku-20240307",
-        messages=[{"role": "user", "content": "Explain quantum computing"}],
-        max_tokens=100
-    )
-    # Token usage and costs are automatically tracked
-```
-
-### Enable Auto-Logging for LLMs
-
-```python
-import mlflow
-
-# Enable automatic tracking for OpenAI
-mlflow.openai.autolog()
-
-# Enable automatic tracking for Anthropic
-mlflow.anthropic.autolog()
-
-# Now all API calls are automatically tracked!
-```
-
-### Cost Tracking
-
-mltrack automatically estimates costs for popular LLM models:
-
-```python
-# After your LLM calls, check the MLflow UI for:
-# - llm.cost.prompt ($ for input tokens)
-# - llm.cost.completion ($ for output tokens)  
-# - llm.cost.total (total cost)
-# - llm.cost.cumulative (running total)
-```
-
-## Model Registry 📦
-
-mltrack includes a powerful model registry for managing your trained models:
-
-### Register a Model
-
-```bash
-# Register a model from a completed run
-mltrack models register --run-id abc123 --name my-model --stage staging
-
-# With S3 storage
-export MLTRACK_S3_BUCKET=my-model-bucket
-mltrack models register --run-id abc123 --name my-model --description "Customer churn predictor v2"
-```
-
-### Manage Models
-
-```bash
-# List all models
-mltrack models list
-
-# List production models only
-mltrack models list --stage production
-
-# Get model details
-mltrack models info my-model
-
-# Generate loading code
-mltrack models load-code my-model > load_model.py
-
-# Promote to production
-mltrack models transition my-model v20240115_abc123 production
-```
-
-### Load Models in Code
-
-```python
-from mltrack import ModelRegistry
-
-# Initialize registry
-registry = ModelRegistry()
-
-# Load latest version
-model = registry.load_model("my-model")
-
-# Load specific version
-model = registry.load_model("my-model", version="v20240115_abc123")
-
-# Make predictions
-predictions = model.predict(data)
-```
-
-### Modern UI Model Management
-
-The modern UI includes a dedicated Models tab where you can:
-- Browse all registered models
-- View model metrics and parameters
-- Transition models between stages
-- Generate and copy loading code
-- Track model lineage
-
-## Advanced Usage
-
-### Custom Tags
-
-```python
-@track(tags={"version": "2.0", "dataset": "customers"})
-def train_model(data):
-    # Your training code
-    pass
-```
-
-### Disable Argument Logging
-
-```python
-@track(log_args=False)  # Don't log function arguments
-def train_model(sensitive_data):
-    pass
-```
-
-### Enhanced UI with Aim
-
-mltrack supports [Aim](https://github.com/aimhubio/aim) for a more advanced experiment tracking UI:
-
-```bash
-# Launch Aim UI (recommended)
-mltrack ui
-
-# Custom port
-mltrack ui --port 43801
-
-# Access Aim UI at http://localhost:43800
-```
-
-**Aim Features:**
-- 🎯 Advanced experiment comparison and grouping
-- 📊 Interactive metric exploration
-- 🔍 Powerful search and filtering
-- 📈 Custom dashboards and views
-- 🤝 Better collaboration features
-- 🔄 Automatic sync from MLflow experiments
-
-**Note**: Aim requires Python 3.12 or earlier on macOS ARM64.
-
-**Fallback to MLflow UI:**
-```bash
-# Use standard MLflow UI
-mltrack ui --use-mlflow
-
-# Custom port
-mltrack ui --use-mlflow --port 5001
-```
-
-**Docker Option (if native installation fails):**
-```bash
-# Generate docker-compose.yml
-mltrack ui --docker-compose
-docker-compose up -d
-```
-
-## LLM Tracking
-
-mltrack provides specialized tracking for Large Language Models:
-
-### Basic LLM Tracking
-
-```python
-from mltrack import track_llm
-from openai import OpenAI
-
-client = OpenAI()
-
-@track_llm(name="gpt-completion")
-def generate_text(prompt: str):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    return response
-
-# Automatically tracks:
-# - Prompt and response
-# - Token usage (input/output/total)
-# - Cost estimation
-# - Latency
-# - Model parameters
-response = generate_text("Explain machine learning")
-```
-
-### Multi-turn Conversations
-
-```python
-from mltrack import track_llm_context
-
-with track_llm_context("customer-support-chat"):
-    # All LLM calls within this context are tracked together
-    messages = []
-    
-    for user_input in conversation:
-        response = generate_response(messages + [{"role": "user", "content": user_input}])
-        messages.append({"role": "assistant", "content": response})
-    
-    # Aggregated metrics are automatically logged:
-    # - Total tokens across all turns
-    # - Total cost
-    # - Number of turns
-    # - Total latency
-```
-
-### Anthropic (Claude) Support
-
-```python
-from anthropic import Anthropic
-
-client = Anthropic()
-
-@track_llm(name="claude-analysis")
-def analyze_with_claude(text: str):
-    response = client.messages.create(
-        model="claude-3-sonnet-20240229",
-        messages=[{"role": "user", "content": f"Analyze this: {text}"}],
-        max_tokens=300
-    )
+    # Automatically tracks tokens and cost
+    log_llm_usage(response)
     return response
 ```
 
-### LLM Configuration
+## 🏗️ Architecture
 
-Configure LLM tracking in `.mltrack.yml`:
-
-```yaml
-# LLM tracking settings
-llm_tracking_enabled: true
-llm_log_prompts: true
-llm_log_responses: true
-llm_track_token_usage: true
-llm_track_costs: true
-llm_token_limit_warning: 100000  # Warn after 100k tokens
-llm_cost_limit_warning: 10.0     # Warn after $10 USD
+```mermaid
+graph TD
+    A[ML Code] -->|@track decorator| B[MLTrack Client]
+    B --> C[MLflow Backend]
+    B --> D[MLTrack API]
+    D --> E[Next.js UI]
+    D --> F[Deployment Service]
+    C --> G[(Artifact Storage)]
+    C --> H[(Metrics DB)]
 ```
 
-### Manual Framework Setup
+## 🤝 Contributing
 
-```python
-from mltrack import MLTracker
-from mltrack.config import MLTrackConfig
+We love contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-# Custom configuration
-config = MLTrackConfig(
-    tracking_uri="http://localhost:5000",
-    require_uv=True,  # Enforce UV environment
-)
-
-tracker = MLTracker(config)
-```
-
-## Environment Management
-
-mltrack is optimized for UV environments and will warn when not using UV:
-
-```bash
-# Create a UV environment
-uv venv
-
-# Install dependencies
-uv pip install -r requirements.txt
-
-# Run with UV
-uv run python train.py
-```
-
-## Examples
-
-mltrack includes comprehensive examples for both traditional ML and LLM tracking:
-
-### Traditional ML Examples
-
-```bash
-# Scikit-learn examples
-uv run python examples/ml/sklearn_examples.py
-
-# PyTorch examples  
-uv run python examples/ml/pytorch_examples.py
-
-# XGBoost/LightGBM examples
-uv run python examples/ml/xgboost_lightgbm_examples.py
-```
-
-### LLM Examples
-
-```bash
-# OpenAI examples (requires OPENAI_API_KEY)
-uv run python examples/llm/openai_example.py
-
-# Anthropic examples (requires ANTHROPIC_API_KEY)
-uv run python examples/llm/anthropic_example.py
-
-# Unified ML + LLM example
-uv run python examples/unified_ml_llm_example.py
-```
-
-## Contributing
+### Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/mltrack
+git clone https://github.com/EconoBen/mltrack.git
 cd mltrack
 
-# Create UV environment
-uv venv
-uv pip install -e ".[dev]"
+# Install in development mode
+pip install -e ".[dev]"
+
+# Install frontend dependencies
+cd frontend
+npm install
 
 # Run tests
-uv run pytest
-
-# Run linting
-uv run ruff check .
-uv run mypy .
+pytest
+npm test
 ```
 
-## License
+### Code Style
 
-MIT License - see LICENSE file for details.
+- Python: Black + isort + flake8
+- TypeScript: ESLint + Prettier
+- Pre-commit hooks included
+
+## 🗺️ Roadmap
+
+- [ ] **v0.2.0** - AutoML integration and hyperparameter tuning
+- [ ] **v0.3.0** - Distributed training support
+- [ ] **v0.4.0** - Model monitoring and drift detection
+- [ ] **v0.5.0** - Kubernetes operator for deployment
+- [ ] **v1.0.0** - Production-ready with enterprise features
+
+See our [full roadmap](ROADMAP.md) for more details.
+
+## 🙏 Acknowledgments
+
+MLTrack is built on the shoulders of giants:
+
+- [MLflow](https://mlflow.org/) - The core tracking engine
+- [Modal](https://modal.com/) - Serverless deployment platform
+- [Next.js](https://nextjs.org/) - React framework for the UI
+- All our [contributors](https://github.com/EconoBen/mltrack/graphs/contributors)
+
+## 📝 License
+
+MLTrack is MIT licensed. See the [LICENSE](LICENSE) file for details.
+
+## 🌟 Star History
+
+<div align="center">
+  <a href="https://star-history.com/#EconoBen/mltrack&Date">
+    <img src="https://api.star-history.com/svg?repos=EconoBen/mltrack&type=Date" alt="Star History Chart">
+  </a>
+</div>
+
+---
+
+<div align="center">
+  <p>
+    Made with ❤️ by the MLTrack community
+  </p>
+  <p>
+    <a href="https://twitter.com/mltrack">Twitter</a> •
+    <a href="https://discord.gg/mltrack">Discord</a> •
+    <a href="https://mltrack.io">Website</a>
+  </p>
+</div>
