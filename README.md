@@ -2,7 +2,7 @@
   <h1>🚀 MLTrack</h1>
   
   <p>
-    <strong>Modern machine learning experiment tracking and deployment platform</strong>
+    <strong>Drop-in MLflow enhancement with powerful CLI for ML deployment</strong>
   </p>
   
   <p>
@@ -34,53 +34,119 @@
 
 ---
 
-## 🎯 Why MLTrack?
+## 🔄 MLflow Compatible
 
-**MLTrack** simplifies machine learning experiment tracking and model deployment. Built on MLflow's robust foundation, it provides a modern interface and streamlined workflows that make ML development a joy.
+MLTrack is a **drop-in enhancement** for MLflow, not a replacement. Your existing code keeps working:
 
 ```python
-from mltrack import track
+# Your existing MLflow code works unchanged
+import mlflow
+mlflow.start_run()
+mlflow.log_param("alpha", 0.5)
+mlflow.log_metric("rmse", 0.876)
+mlflow.end_run()
 
-@track
+# Just add MLTrack for deployment superpowers
+from mltrack import get_last_run, deploy
+deploy(get_last_run(), platform="modal")
+```
+
+---
+
+## 🎯 Why MLTrack?
+
+**Stop experimenting. Start shipping.**
+
+MLTrack is a drop-in enhancement for MLflow that focuses on what matters: getting models into production. While MLflow handles experiment tracking beautifully, MLTrack adds the missing pieces for the complete ML lifecycle: **Build → Deploy → Monitor**.
+
+```python
+# Works with your existing MLflow code
+import mlflow
+from mltrack import track, deploy
+
+@track  # Automatic MLflow tracking + deployment readiness
 def train_model(learning_rate=0.01, batch_size=32):
-    # Your training code here
     model = train(learning_rate, batch_size)
     return model
 
-# That's it! Experiments are automatically tracked 🎉
+# One command to production
+deploy(model, platform="modal")  # or "lambda", "docker"
 ```
 
 ## ✨ Features
 
-### 🚀 **Zero-Configuration Tracking**
-- Simple `@track` decorator automatically captures metrics, parameters, and artifacts
-- Intelligent framework detection (PyTorch, TensorFlow, scikit-learn, XGBoost, and more)
-- No boilerplate code required
+### 🏗️ **Build: Enhanced MLflow Tracking**
+- Drop-in replacement for MLflow with zero config changes
+- Simple `@track` decorator adds deployment metadata automatically
+- Works with all MLflow features - just better UI and workflows
 
-### 💰 **LLM Cost Tracking**
-- Track token usage and costs for OpenAI, Anthropic, and other providers
-- Monitor spending across experiments and teams
-- Set budget alerts and limits
+### 🚀 **Deploy: Production in One Command**
+- **Modal**: Serverless GPU deployment with auto-scaling
+- **AWS Lambda**: Cost-effective for lightweight models
+- **Docker**: For Kubernetes, ECS, or any container platform
+- Automatic FastAPI endpoints with OpenAPI documentation
+- Built-in model versioning and rollback
 
-### 🎨 **Beautiful Modern UI**
-- Next.js 15 powered interface with real-time updates
-- Interactive visualizations for metrics and comparisons
-- Dark mode support
+### 📊 **Monitor: Know What's Happening**
+- Real-time inference metrics and latency tracking
+- Model drift detection and alerts
+- Cost analysis (compute + LLM tokens)
+- A/B testing and canary deployments built-in
 
-### 🚢 **One-Click Deployment**
-- Deploy models to Modal, AWS Lambda, or containers
-- Automatic API generation with FastAPI
-- Built-in load balancing and scaling
+### 💼 **Enterprise Ready**
+- Works with existing MLflow tracking servers
+- Integrates with your current CI/CD pipelines
+- Multi-user support with SSO/SAML
+- Audit logs and compliance features
 
-### 👥 **Team Collaboration**
-- Multi-user support with role-based access
-- Shared experiments and model registry
-- Comments and annotations
+### 🎯 **Built for Real ML Teams**
+- Stop juggling notebooks, scripts, and YAML configs
+- Go from experiment to production endpoint in minutes
+- Monitor actual business impact, not just model metrics
+- Scale from POC to production without rewrites
 
-### 📊 **Advanced Analytics**
-- Hyperparameter importance analysis
-- Automatic experiment comparison
-- Custom dashboards and reports
+## 🎮 Powerful CLI
+
+MLTrack provides a comprehensive CLI that makes ML operations as simple as web development:
+
+```bash
+# Training shortcuts
+mltrack train script.py --params learning_rate=0.01 batch_size=32
+mltrack train --last  # Re-run last experiment with same params
+mltrack train --best  # Re-run best performing experiment
+
+# Deployment commands
+mltrack deploy --last --platform modal  # Deploy last trained model
+mltrack deploy --best accuracy --platform lambda  # Deploy best model by metric
+mltrack deploy --run-id abc123 --platform docker --push-to ecr
+
+# Model management
+mltrack models list  # List all registered models
+mltrack models promote fraud-detector --from staging --to production
+mltrack models rollback fraud-detector  # Instant rollback
+
+# Monitoring and logs
+mltrack logs fraud-detector --tail  # Stream production logs
+mltrack metrics fraud-detector --window 1h  # Recent performance
+mltrack alerts create --model fraud-detector --metric latency --threshold 100ms
+
+# Batch operations
+mltrack experiments clean --older-than 30d  # Cleanup old experiments
+mltrack deploy-all models.yaml  # Deploy multiple models from config
+mltrack benchmark --models v1,v2,v3 --dataset test.csv  # Compare models
+
+# Integration with Unix tools
+mltrack list --format json | jq '.[] | select(.metrics.accuracy > 0.9)'
+mltrack export --run-id abc123 | aws s3 cp - s3://models/model.pkl
+```
+
+### CLI Highlights
+
+- **Intuitive shortcuts**: Common workflows in single commands
+- **Unix-friendly**: Pipe-able, scriptable, automation-ready  
+- **Smart defaults**: `--last`, `--best` flags for quick access
+- **Batch operations**: Handle multiple models/experiments at once
+- **Real-time monitoring**: Stream logs and metrics from production
 
 ## 🚀 Quick Start
 
@@ -93,41 +159,52 @@ pip install mltrack
 ### Basic Usage
 
 ```python
-from mltrack import track, log_metric
-import numpy as np
+# 1. BUILD - Works with your existing MLflow code
+from mltrack import track
+import mlflow
 
-@track
+@track  # Enhances MLflow tracking
 def train_model(n_estimators=100, max_depth=10):
-    # Simulate training
-    for epoch in range(10):
-        loss = np.random.random() * (0.1 / (epoch + 1))
-        log_metric("loss", loss, step=epoch)
+    # Your normal training code
+    model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
+    model.fit(X_train, y_train)
     
-    accuracy = 0.85 + np.random.random() * 0.1
-    log_metric("accuracy", accuracy)
+    # Log metrics as usual with MLflow
+    mlflow.log_metric("accuracy", accuracy_score(y_test, model.predict(X_test)))
+    mlflow.sklearn.log_model(model, "model")
     
-    return {"model": "trained_model_data"}
+    return model
 
-# Run experiment
-train_model(n_estimators=150, max_depth=12)
+# 2. DEPLOY - One line to production
+from mltrack import deploy
+
+model = train_model(n_estimators=150)
+endpoint = deploy(model, 
+    platform="modal",  # or "lambda", "docker"
+    name="fraud-detection-v1",
+    gpu=False,  # Auto-scales based on load
+    env_vars={"API_KEY": "secret"}
+)
+
+# 3. MONITOR - Track production performance
+print(f"Model deployed to: {endpoint.url}")
+# Automatic monitoring dashboard at http://localhost:3000/deployments/fraud-detection-v1
 ```
 
-### Start the UI
+### The Full Workflow
 
 ```bash
-mltrack ui
-```
+# Start with your existing MLflow setup
+export MLFLOW_TRACKING_URI=http://your-mlflow-server:5000
 
-Navigate to http://localhost:3000 to see your experiments!
+# Add MLTrack for better UI and deployment
+pip install mltrack
 
-### Deploy a Model
+# Train and deploy in one script
+python train.py  # Tracks with MLflow, deploys with MLTrack
 
-```bash
-# Deploy the best model from an experiment
-mltrack deploy --experiment my_experiment --platform modal
-
-# Or deploy a specific run
-mltrack deploy --run-id abc123 --platform lambda
+# Monitor everything in one place
+mltrack ui  # Beautiful dashboard at http://localhost:3000
 ```
 
 ## 📚 Documentation
@@ -188,14 +265,25 @@ def test_rag_pipeline(temperature=0.7, top_k=5):
 
 ```mermaid
 graph TD
-    A[ML Code] -->|@track decorator| B[MLTrack Client]
-    B --> C[MLflow Backend]
-    B --> D[MLTrack API]
-    D --> E[Next.js UI]
-    D --> F[Deployment Service]
-    C --> G[(Artifact Storage)]
-    C --> H[(Metrics DB)]
+    A[Your ML Code] -->|Existing MLflow calls| B[MLflow Tracking Server]
+    A -->|@track decorator| C[MLTrack Enhancement Layer]
+    C --> B
+    C --> D[MLTrack Deployment Service]
+    D --> E[Modal/Lambda/Docker]
+    C --> F[MLTrack UI]
+    F --> G[Monitoring Dashboard]
+    B --> H[(MLflow Store)]
+    
+    style C fill:#7c3aed,color:#fff
+    style D fill:#7c3aed,color:#fff
+    style F fill:#7c3aed,color:#fff
 ```
+
+**Key Points:**
+- MLTrack sits **alongside** MLflow, not in front of it
+- Your MLflow tracking server stays unchanged
+- MLTrack adds deployment and monitoring capabilities
+- All MLflow features remain accessible
 
 ## 🤝 Contributing
 
