@@ -107,7 +107,9 @@ deploy(model, platform="modal")  # or "lambda", "docker"
 
 ## 🎮 Powerful CLI
 
-MLTrack provides a comprehensive CLI that makes ML operations as simple as web development:
+MLTrack provides a comprehensive CLI that makes ML operations as simple as web development.
+
+> **Note**: You can use either `mltrack` or the shorter `ml` command - they're identical!
 
 ```bash
 # Training shortcuts
@@ -138,6 +140,11 @@ mltrack benchmark --models v1,v2,v3 --dataset test.csv  # Compare models
 # Integration with Unix tools
 mltrack list --format json | jq '.[] | select(.metrics.accuracy > 0.9)'
 mltrack export --run-id abc123 | aws s3 cp - s3://models/model.pkl
+
+# UI commands
+ml ui          # Launch modern MLTrack UI (default port 3000)
+ml ui --port 8080  # Custom port
+ml flow        # Launch classic MLflow UI (default port 5000)
 ```
 
 ### CLI Highlights
