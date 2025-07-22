@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd website && npm install && npm run build",
+  "outputDirectory": "website/.next",
+  "installCommand": "echo 'Skipping install'",
+  "framework": null,
+  "functions": {
+    "website/app/api/**/*": {
+      "maxDuration": 10
+    }
+  }
+}
