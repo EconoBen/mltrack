@@ -12,7 +12,7 @@ interface Command {
 const commands: Command[] = [
   { input: "ml train model.py", delay: 500 },
   { output: "🚀 Starting training run...", delay: 300 },
-  { output: "📊 Tracking metrics to MLflow...", delay: 400 },
+  { output: "📊 Tracking metrics to MLTrack UI...", delay: 400 },
   { output: "✅ Training complete! Model accuracy: 0.94", delay: 600 },
   { input: "ml save awesome-model", delay: 800 },
   { output: "💾 Model saved to registry", delay: 300 },
