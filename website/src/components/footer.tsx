@@ -13,14 +13,14 @@ export function Footer() {
               </div>
               <span className="font-semibold text-lg">MLTrack</span>
             </div>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-300 text-sm">
               Stop experimenting. Start shipping.
             </p>
           </div>
           
           <div>
             <h3 className="font-semibold mb-4">Product</h3>
-            <ul className="space-y-2 text-sm text-gray-400">
+            <ul className="space-y-2 text-sm text-gray-300">
               <li>
                 <Link href="#features" className="hover:text-white transition-colors">
                   Features
@@ -41,7 +41,7 @@ export function Footer() {
           
           <div>
             <h3 className="font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2 text-sm text-gray-400">
+            <ul className="space-y-2 text-sm text-gray-300">
               <li>
                 <Link href="https://github.com/EconoBen/mltrack" className="hover:text-white transition-colors">
                   GitHub
@@ -79,7 +79,7 @@ export function Footer() {
           </div>
         </div>
         
-        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-sm text-gray-400">
+        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-sm text-gray-300">
           <p>© 2025 MLTrack. Built by Ben LaBaschin.</p>
           <p>Open source under MIT License</p>
         </div>

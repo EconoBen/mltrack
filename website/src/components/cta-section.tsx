@@ -24,7 +24,7 @@ export function CTASection() {
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
               Ready to ship your models?
             </h2>
-            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
               Join the growing community of ML engineers who ship models in minutes, not weeks.
             </p>
             
@@ -40,7 +40,7 @@ export function CTASection() {
             </div>
             
             <div className="mt-8">
-              <code className="text-sm text-gray-400 bg-black/50 px-4 py-2 rounded-lg font-mono">
+              <code className="text-sm text-gray-300 bg-black/50 px-4 py-2 rounded-lg font-mono">
                 pip install mltrack
               </code>
             </div>

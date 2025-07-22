@@ -30,7 +30,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent"
+            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent leading-tight"
           >
             Stop experimenting.
             <br />
@@ -41,7 +41,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto"
+            className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
             Drop-in enhancement for MLflow that adds deployment capabilities and a modern UI. 
             Deploy ML models in minutes, not weeks.
@@ -64,7 +64,7 @@ export function HeroSection() {
             
             <Link
               href="#features"
-              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/10"
+              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/15 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/20 shadow-lg"
             >
               See it in action
             </Link>
@@ -74,7 +74,7 @@ export function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-500"
+            className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-400"
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />

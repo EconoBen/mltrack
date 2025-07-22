@@ -17,7 +17,7 @@ export function PricingSection() {
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Pricing that makes sense
           </h2>
-          <p className="text-xl text-gray-400">
+          <p className="text-xl text-gray-300">
             Open source and free forever. Because ML tools should be accessible.
           </p>
         </motion.div>
@@ -36,7 +36,7 @@ export function PricingSection() {
           
           <div className="mb-8">
             <span className="text-5xl font-bold">$0</span>
-            <span className="text-gray-400 ml-2">forever</span>
+            <span className="text-gray-300 ml-2">forever</span>
           </div>
           
           <ul className="space-y-3 mb-8">
@@ -56,7 +56,7 @@ export function PricingSection() {
           </ul>
           
           <div className="pt-6 border-t border-white/10">
-            <p className="text-sm text-gray-400 text-center">
+            <p className="text-sm text-gray-300 text-center">
               Want to support the project? Star us on GitHub or contribute code!
             </p>
           </div>
@@ -69,7 +69,7 @@ export function PricingSection() {
           viewport={{ once: true }}
           className="mt-12 text-center"
         >
-          <p className="text-gray-400 mb-4">
+          <p className="text-gray-300 mb-4">
             Need enterprise features or support?
           </p>
           <a

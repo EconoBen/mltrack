@@ -41,7 +41,7 @@ export function ProblemSection() {
             ML deployment is{" "}
             <span className="text-red-500">unnecessarily hard</span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             You trained a great model. Now you need a PhD in DevOps to share it with the world.
           </p>
         </motion.div>
@@ -62,7 +62,7 @@ export function ProblemSection() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2">{problem.title}</h3>
-                  <p className="text-gray-400">{problem.description}</p>
+                  <p className="text-gray-300">{problem.description}</p>
                 </div>
               </div>
             </motion.div>
