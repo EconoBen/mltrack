@@ -72,3 +72,8 @@ out/
 *.tsbuildinfo
 .vercel
 .turbo
+*.pyc
+__pycache__/
+mlruns/
+*.db
+*.log

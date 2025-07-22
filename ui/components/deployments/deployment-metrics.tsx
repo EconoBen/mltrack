@@ -44,7 +44,7 @@ export function DeploymentMetrics({ deployment }: DeploymentMetricsProps) {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch(`/api/deployments/${deployment.model_name}/metrics`);
+      const response = await fetch(`/api/deployments/${deployment.id}/metrics`);
       if (response.ok) {
         const data = await response.json();
         setMetrics(data);

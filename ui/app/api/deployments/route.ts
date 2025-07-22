@@ -1,84 +1,118 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-const execAsync = promisify(exec);
-
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Get list of registered models
-    const modelsResponse = await fetch(`${process.env.MLFLOW_TRACKING_URI || 'http://localhost:5000'}/api/2.0/mlflow/registered-models/list`);
-    const modelsData = await modelsResponse.json();
-    
-    // Get running containers
-    const { stdout: containerList } = await execAsync('docker ps --format "{{.Names}}\t{{.Status}}\t{{.Ports}}" --filter "name=mltrack-"');
-    
-    const runningContainers = new Map();
-    containerList.split('\n').filter(Boolean).forEach(line => {
-      const [name, status, ports] = line.split('\t');
-      const modelName = name.replace('mltrack-', '').replace(/-\d+$/, '');
-      const port = ports.match(/:(\d+)->8000/)?.[1] || '8000';
-      
-      runningContainers.set(modelName, {
-        status: 'running',
-        port: parseInt(port),
-        container: name,
-      });
-    });
-    
-    // Get model metadata from registry
-    const deployments = [];
-    
-    // Read from local registry
-    const fs = require('fs');
-    const path = require('path');
-    const registryPath = path.join(process.env.HOME || '', '.mltrack', 'registry');
-    
-    if (fs.existsSync(registryPath)) {
-      const files = fs.readdirSync(registryPath);
-      
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          const modelData = JSON.parse(fs.readFileSync(path.join(registryPath, file), 'utf8'));
-          const modelName = file.replace('.json', '');
-          
-          for (const model of modelData.models || []) {
-            const running = runningContainers.get(modelName);
-            
-            deployments.push({
-              model_name: modelName,
-              version: model.version,
-              status: running ? 'running' : 'stopped',
-              container: model.container,
-              api: running ? {
-                url: `http://localhost:${running.port}`,
-                port: running.port,
-                health: await checkHealth(`http://localhost:${running.port}`),
-              } : undefined,
-              framework: model.framework || 'unknown',
-              task_type: model.task_type || 'unknown',
-              stage: model.stage || 'none',
-            });
-          }
-        }
-      }
+    const body = await request.json();
+    const { runId, config } = body;
+
+    if (!runId || !config) {
+      return NextResponse.json(
+        { error: 'Missing required fields: runId and config' },
+        { status: 400 }
+      );
     }
+
+    // Call Python backend to deploy model
+    const deploymentUrl = `${process.env.MLFLOW_TRACKING_URI || 'http://localhost:5001'}/api/2.0/preview/mltrack/deploy`;
     
-    return NextResponse.json({ deployments });
+    const response = await fetch(deploymentUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        run_id: runId,
+        config: config,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return NextResponse.json(
+        { error: `Deployment failed: ${error}` },
+        { status: response.status }
+      );
+    }
+
+    const result = await response.json();
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching deployments:', error);
-    return NextResponse.json({ deployments: [] });
+    console.error('Deployment error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
-async function checkHealth(url: string): Promise<'healthy' | 'unhealthy' | 'checking'> {
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${url}/health`, { 
-      method: 'GET',
-      signal: AbortSignal.timeout(2000) // 2s timeout
+    const { searchParams } = new URL(request.url);
+    const modelName = searchParams.get('model_name');
+    const status = searchParams.get('status');
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (modelName) params.append('model_name', modelName);
+    if (status) params.append('status', status);
+
+    // Get deployments from backend
+    const deploymentsUrl = `${process.env.MLFLOW_TRACKING_URI || 'http://localhost:5001'}/api/2.0/preview/mltrack/deployments?${params}`;
+    
+    const response = await fetch(deploymentsUrl);
+
+    if (!response.ok) {
+      const error = await response.text();
+      return NextResponse.json(
+        { error: `Failed to fetch deployments: ${error}` },
+        { status: response.status }
+      );
+    }
+
+    const deployments = await response.json();
+    return NextResponse.json(deployments);
+  } catch (error) {
+    console.error('Error fetching deployments:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const deploymentId = searchParams.get('deployment_id');
+
+    if (!deploymentId) {
+      return NextResponse.json(
+        { error: 'Missing deployment_id parameter' },
+        { status: 400 }
+      );
+    }
+
+    // Call Python backend to stop deployment
+    const stopUrl = `${process.env.MLFLOW_TRACKING_URI || 'http://localhost:5001'}/api/2.0/preview/mltrack/deployments/${deploymentId}/stop`;
+    
+    const response = await fetch(stopUrl, {
+      method: 'DELETE',
     });
-    return response.ok ? 'healthy' : 'unhealthy';
-  } catch {
-    return 'unhealthy';
+
+    if (!response.ok) {
+      const error = await response.text();
+      return NextResponse.json(
+        { error: `Failed to stop deployment: ${error}` },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error stopping deployment:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

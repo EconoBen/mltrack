@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { model: string } }
+  { params }: { params: { deploymentId: string } }
 ) {
-  const modelName = params.model;
+  const deploymentId = params.deploymentId;
   
   // Generate mock metrics for demonstration
   // In production, this would fetch from Prometheus, DataDog, etc.

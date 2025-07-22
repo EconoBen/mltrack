@@ -54,12 +54,6 @@ class MLTrackConfig(BaseModel):
         description="Automatically detect and configure ML frameworks"
     )
     
-    # Model registry settings
-    auto_register_models: bool = Field(
-        default=True,
-        description="Automatically register models returned from @track decorated functions"
-    )
-    
     # Notification settings
     slack_webhook: Optional[str] = Field(
         default=None,
@@ -82,62 +76,6 @@ class MLTrackConfig(BaseModel):
         description="Default artifact storage location"
     )
     
-    # Flexible data storage settings
-    enable_flexible_storage: bool = Field(
-        default=False,
-        description="Enable flexible data storage with deduplication"
-    )
-    s3_bucket: Optional[str] = Field(
-        default=None,
-        description="S3 bucket for data storage (or use MLTRACK_S3_BUCKET env var)"
-    )
-    default_run_type: str = Field(
-        default="experiment",
-        description="Default run type: experiment, production, evaluation, development, analysis"
-    )
-    default_storage_mode: str = Field(
-        default="by_project",
-        description="Default storage organization: by_project, by_date, by_type, by_model, flat"
-    )
-    data_deduplication: bool = Field(
-        default=True,
-        description="Enable content-addressable storage for data deduplication"
-    )
-    
-    # LLM tracking settings
-    llm_tracking_enabled: bool = Field(
-        default=True,
-        description="Enable LLM-specific tracking features"
-    )
-    llm_log_prompts: bool = Field(
-        default=True,
-        description="Log prompts sent to LLMs"
-    )
-    llm_log_responses: bool = Field(
-        default=True,
-        description="Log responses from LLMs"
-    )
-    llm_track_token_usage: bool = Field(
-        default=True,
-        description="Track token usage for LLM calls"
-    )
-    llm_track_costs: bool = Field(
-        default=True,
-        description="Estimate and track costs for LLM calls"
-    )
-    llm_token_limit_warning: Optional[int] = Field(
-        default=100000,
-        description="Warn when cumulative tokens exceed this limit"
-    )
-    llm_cost_limit_warning: Optional[float] = Field(
-        default=10.0,
-        description="Warn when cumulative cost exceeds this limit (USD)"
-    )
-    llm_providers: Dict[str, Dict[str, Any]] = Field(
-        default_factory=dict,
-        description="Provider-specific LLM configuration"
-    )
-    
     @validator("tracking_uri", pre=True, always=True)
     def expand_tracking_uri(cls, v: str) -> str:
         """Expand environment variables and paths in tracking URI."""
@@ -153,13 +91,6 @@ class MLTrackConfig(BaseModel):
                 # For relative paths, resolve from current directory
                 expanded = os.path.abspath(expanded)
             return f"file://{expanded}"
-        return v
-    
-    @validator("s3_bucket", pre=True, always=True)
-    def get_s3_bucket(cls, v: Optional[str]) -> Optional[str]:
-        """Get S3 bucket from config or environment."""
-        if not v:
-            return os.environ.get("MLTRACK_S3_BUCKET")
         return v
     
     @classmethod

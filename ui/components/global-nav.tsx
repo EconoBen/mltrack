@@ -3,11 +3,13 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { UserMenu } from '@/components/user-menu';
+import { UserMenuEnhanced } from '@/components/user-menu-enhanced';
 import { LiveIndicator } from '@/components/live-indicator';
+import { GlobalSearch } from '@/components/global-search';
+import { AuthStatusIndicator } from '@/components/auth-status-indicator';
 import { 
   Activity, Home, FlaskConical, Package, Rocket, 
-  FileBarChart, Settings, Search, BarChart3 
+  FileBarChart, Settings, BarChart3 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +27,7 @@ export function GlobalNav() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo and Brand */}
@@ -66,17 +68,12 @@ export function GlobalNav() {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
+            <AuthStatusIndicator />
             <LiveIndicator />
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Search className="h-4 w-4" />
-              <span className="hidden lg:inline">Search</span>
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <GlobalSearch />
             <ThemeToggle />
             <div className="w-px h-6 bg-border" />
-            <UserMenu />
+            <UserMenuEnhanced />
           </div>
         </div>
       </div>

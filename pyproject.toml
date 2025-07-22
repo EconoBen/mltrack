@@ -3,12 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mltrack"
+name = "ml-track"
 version = "0.1.0"
 description = "Universal ML tracking tool for teams"
 readme = "README.md"
 authors = [
-    { name = "Your Team", email = "ml-team@yourcompany.com" }
+    { name = "Ben Labaschin", email = "ben@labaschin.com" }
 ]
 license = "MIT"
 classifiers = [
@@ -71,9 +71,9 @@ mltrack = "mltrack.cli:main"
 ml = "mltrack.cli:main"
 
 [project.urls]
-"Homepage" = "https://github.com/yourorg/mltrack"
-"Bug Reports" = "https://github.com/yourorg/mltrack/issues"
-"Source" = "https://github.com/yourorg/mltrack"
+"Homepage" = "https://github.com/EconoBen/mltrack"
+"Bug Reports" = "https://github.com/EconoBen/mltrack/issues"
+"Source" = "https://github.com/EconoBen/mltrack"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mltrack"]

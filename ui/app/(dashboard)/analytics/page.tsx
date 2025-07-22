@@ -24,6 +24,9 @@ import { PerformanceDashboard } from '@/components/analytics/performance-dashboa
 import { RealtimeDashboard } from '@/components/analytics/realtime-dashboard';
 import { TokenUsageDashboard } from '@/components/analytics/token-usage-dashboard';
 import { ModelComparisonDashboard } from '@/components/analytics/model-comparison-dashboard';
+import { TimeSeriesDashboard } from '@/components/analytics/time-series-dashboard';
+import { UserActivityHeatmap } from '@/components/analytics/user-activity-heatmap';
+import { ReportsDashboard } from '@/components/analytics/reports-dashboard';
 import { useExperiments } from '@/lib/hooks/use-mlflow';
 import { MLflowClient } from '@/lib/api/mlflow';
 
@@ -256,14 +259,16 @@ export default function AnalyticsPage() {
 
         {/* Main Charts */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-5 lg:grid-cols-9">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="timeseries">Time Series</TabsTrigger>
             <TabsTrigger value="realtime">Real-time</TabsTrigger>
             <TabsTrigger value="cost">Cost</TabsTrigger>
             <TabsTrigger value="tokens">Tokens</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -374,6 +379,10 @@ export default function AnalyticsPage() {
             )}
           </TabsContent>
 
+          <TabsContent value="timeseries" className="space-y-4">
+            <TimeSeriesDashboard />
+          </TabsContent>
+
           <TabsContent value="realtime" className="space-y-4">
             <RealtimeDashboard />
           </TabsContent>
@@ -415,20 +424,11 @@ export default function AnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Activity Heatmap</CardTitle>
-                <CardDescription>
-                  Usage patterns by user over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>User activity analytics coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
+            <UserActivityHeatmap />
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <ReportsDashboard />
           </TabsContent>
         </Tabs>
       </div>

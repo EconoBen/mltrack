@@ -19,15 +19,6 @@ from mltrack.config import MLTrackConfig
 from mltrack.detectors import FrameworkDetector, get_model_info
 from mltrack.git_utils import get_git_tags, get_git_info, create_git_commit_url
 from mltrack.utils import get_pip_requirements, get_conda_environment, get_uv_info, get_pyproject_toml
-from mltrack.llm import LLMTracker
-from mltrack.introspection import ModelIntrospector
-
-# Optional flexible data store
-try:
-    from mltrack.data_store_v2 import FlexibleDataStore, RunType, StorageMode
-    HAS_FLEXIBLE_STORE = True
-except ImportError:
-    HAS_FLEXIBLE_STORE = False
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +33,6 @@ class MLTracker:
         self._check_environment()
         self._setup_mlflow()
         self.detector = FrameworkDetector()
-        self.llm_tracker = LLMTracker(self.config) if self.config.llm_tracking_enabled else None
-        
-        # Initialize flexible data store if enabled and available
-        self.data_store = None
-        if HAS_FLEXIBLE_STORE and getattr(self.config, 'enable_flexible_storage', False):
-            try:
-                self.data_store = FlexibleDataStore(
-                    s3_bucket=getattr(self.config, 's3_bucket', None),
-                    default_run_type=RunType(getattr(self.config, 'default_run_type', 'experiment')),
-                    default_storage_mode=StorageMode(getattr(self.config, 'default_storage_mode', 'by_project'))
-                )
-                logger.info("Flexible data storage enabled")
-            except Exception as e:
-                logger.warning(f"Failed to initialize flexible data store: {e}")
-                self.data_store = None
     
     def _check_environment(self) -> None:
         """Check if we're in a UV environment and warn if not."""
@@ -145,24 +121,13 @@ class MLTracker:
             system_info = self._get_system_info()
             tags["system.platform"] = system_info["platform"]
             tags["system.python_version"] = system_info["python_version"]
-            # Keep system.user for backward compatibility
             tags["system.user"] = system_info["user"]
-        
-        # Add user tags (new user identification system)
-        from .user_info import get_user_tags
-        tags.update(get_user_tags())
         
         # Add framework tags
         if self.config.auto_detect_frameworks:
             frameworks = self.detector.detect_all()
             if frameworks:
                 tags["frameworks"] = ", ".join(f"{f.name}=={f.version}" for f in frameworks)
-                # Check if any LLM frameworks are present
-                llm_frameworks = [f for f in frameworks if f.name in 
-                                  ["OpenAI", "Anthropic", "LangChain", "LlamaIndex", "LiteLLM", "DSPy"]]
-                if llm_frameworks:
-                    tags["has_llm_frameworks"] = "true"
-                    tags["llm_frameworks"] = ", ".join(f"{f.name}=={f.version}" for f in llm_frameworks)
         
         # Add team tag
         if self.config.team_name:
@@ -199,17 +164,6 @@ class MLTracker:
                     # Log function information
                     mlflow.log_param("function_name", f.__name__)
                     mlflow.log_param("function_module", f.__module__)
-                    
-                    # Initialize flexible data store manifest if enabled
-                    data_manifest = None
-                    if self.data_store and mlflow.active_run():
-                        run_info = mlflow.active_run().info
-                        data_manifest = self.data_store.create_run(
-                            run_id=run_info.run_id,
-                            run_type=getattr(self.config, 'default_run_type', RunType.EXPERIMENT),
-                            project=run_info.experiment_id,
-                            tags=self._prepare_tags(tags)
-                        )
                     
                     # Log function arguments
                     if log_args:
@@ -251,77 +205,8 @@ class MLTracker:
                             # Try to log model
                             if hasattr(result, "fit") or hasattr(result, "predict"):
                                 try:
-                                    # Use ModelIntrospector to detect model type and generate tags
-                                    introspector_tags = ModelIntrospector.generate_tags(result)
-                                    for tag_key, tag_value in introspector_tags.items():
-                                        mlflow.set_tag(tag_key, tag_value)
-                                    
-                                    # Also log detailed metadata
-                                    model_metadata = ModelIntrospector.extract_model_metadata(result)
-                                    mlflow.log_dict(model_metadata, "model_metadata.json")
-                                    
-                                    # Log traditional model info as well
                                     model_info = get_model_info(result)
                                     mlflow.log_dict(model_info, "model_info.json")
-                                    
-                                    # Auto-register model if configured
-                                    if self.config.auto_register_models:
-                                        logger.info(f"Auto-registration enabled, attempting to register model")
-                                        try:
-                                            # Log the model first
-                                            # Detect framework and log appropriately
-                                            module_name = str(type(result).__module__)
-                                            model_logged = False
-                                            
-                                            if "sklearn" in module_name:
-                                                try:
-                                                    import mlflow.sklearn as mlflow_sklearn
-                                                    mlflow_sklearn.log_model(result, "model")
-                                                    model_logged = True
-                                                except ImportError:
-                                                    pass
-                                            elif "torch" in module_name:
-                                                try:
-                                                    import mlflow.pytorch as mlflow_pytorch
-                                                    mlflow_pytorch.log_model(result, "model")
-                                                    model_logged = True
-                                                except ImportError:
-                                                    pass
-                                            elif "tensorflow" in module_name or "keras" in module_name:
-                                                try:
-                                                    import mlflow.tensorflow as mlflow_tensorflow
-                                                    mlflow_tensorflow.log_model(result, "model")
-                                                    model_logged = True
-                                                except ImportError:
-                                                    pass
-                                            
-                                            if not model_logged:
-                                                # Fallback to pyfunc
-                                                import mlflow.pyfunc as mlflow_pyfunc
-                                                mlflow_pyfunc.log_model("model", python_model=result)
-                                            
-                                            # Auto-register to MLTrack registry
-                                            if run_name:
-                                                from mltrack.model_registry import ModelRegistry
-                                                registry = ModelRegistry()
-                                                current_run = mlflow.active_run()
-                                                
-                                                # Prepare registration info
-                                                reg_result = registry.register_model(
-                                                    run_id=current_run.info.run_id,
-                                                    model_name=run_name,
-                                                    model_path="model",
-                                                    description=f"Auto-registered from @track decorator",
-                                                    stage="staging",
-                                                    task_type=introspector_tags.get("model.task_type", "unknown"),
-                                                    model_type=introspector_tags.get("model.type", "unknown"),
-                                                    framework=introspector_tags.get("model.framework", "unknown")
-                                                )
-                                                logger.info(f"Model auto-registered: {run_name} v{reg_result['version']}")
-                                                mlflow.set_tag("mltrack.auto_registered", "true")
-                                                mlflow.set_tag("mltrack.model_version", reg_result['version'])
-                                        except Exception as e:
-                                            logger.error(f"Failed to auto-register model: {e}", exc_info=True)
                                 except Exception as e:
                                     logger.warning(f"Failed to log model info: {e}")
                             
@@ -360,11 +245,7 @@ class MLTracker:
         tags: Optional[Dict[str, str]] = None,
     ):
         """Context manager for tracking code blocks."""
-        # Check if we're already in an active run
-        active_run = mlflow.active_run()
-        nested = active_run is not None
-        
-        with mlflow.start_run(run_name=name, tags=self._prepare_tags(tags), nested=nested):
+        with mlflow.start_run(run_name=name, tags=self._prepare_tags(tags)):
             # Enable auto-logging
             if self.config.auto_detect_frameworks:
                 self.detector.setup_auto_logging()

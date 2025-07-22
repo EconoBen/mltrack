@@ -19,6 +19,7 @@ import { useMLflowStore } from '@/lib/store/mlflow-store';
 import { useRouter } from 'next/navigation';
 import { ExperimentsTable } from './experiments-table';
 import { ViewSwitcher, type ViewMode } from './view-switcher';
+import { HomeRealtimeAnalytics } from './home-realtime-analytics';
 
 interface ExperimentCardProps {
   experiment: any;
@@ -218,6 +219,9 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
+      {/* Real-time Analytics Section - Now at the top */}
+      <HomeRealtimeAnalytics />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

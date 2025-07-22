@@ -15,7 +15,8 @@ import {
   ChevronDown, ChevronRight, Brain, BarChart, Clock, 
   User, GitBranch, Package, FileText, Settings,
   Download, Copy, ExternalLink, ArrowLeft, FolderOpen,
-  File, Activity, TrendingUp, TrendingDown
+  File, Activity, TrendingUp, TrendingDown, GitBranchIcon,
+  Rocket
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { MLflowClient } from '@/lib/api/mlflow';
@@ -32,6 +33,8 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { DataLineageGraph } from '@/components/lineage/data-lineage-graph';
+import { DeployButton } from '@/components/deployments/DeployButton';
 
 ChartJS.register(
   CategoryScale,
@@ -190,6 +193,14 @@ export default function RunDetailPage({ params }: PageProps) {
               <ExternalLink className="h-4 w-4 mr-1" />
               Open in MLflow
             </Button>
+            {run.info.status === 'FINISHED' && modelInfo.algorithm && (
+              <DeployButton 
+                runId={runId}
+                modelName={run.data.tags?.find((t: any) => t.key === 'mlflow.runName')?.value || modelInfo.algorithm}
+                variant="outline"
+                size="sm"
+              />
+            )}
           </div>
         </div>
 
@@ -259,6 +270,9 @@ export default function RunDetailPage({ params }: PageProps) {
             <TabsTrigger value="charts">Charts</TabsTrigger>
             <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
             <TabsTrigger value="code">Code</TabsTrigger>
+            {tags['mltrack.has_lineage'] === 'true' && (
+              <TabsTrigger value="lineage">Lineage</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="details" className="space-y-4">
@@ -621,6 +635,18 @@ export default function RunDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {tags['mltrack.has_lineage'] === 'true' && (
+            <TabsContent value="lineage" className="space-y-4">
+              <DataLineageGraph 
+                runId={runId}
+                runData={run}
+                onRunClick={(clickedRunId) => {
+                  router.push(`/runs/${clickedRunId}`);
+                }}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </main>

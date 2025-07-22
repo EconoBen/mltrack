@@ -17,7 +17,6 @@ from mltrack.config import MLTrackConfig
 from mltrack.version import __version__
 from mltrack.utils import is_uv_environment, get_uv_info
 from mltrack.detectors import FrameworkDetector
-from mltrack.user_info import setup_api_key, UserRegistry, get_current_user
 
 console = Console()
 
@@ -364,427 +363,73 @@ def config():
 
 
 @cli.command()
-@click.option("--port", type=int, default=5000, help="Port for the MLflow server (default: 5000)")
-@click.option("--host", default="127.0.0.1", help="Host to bind the MLflow server (default: 127.0.0.1)")
-@click.option("--modern", is_flag=True, help="Launch modern React UI instead of classic MLflow UI")
-@click.option("--ui-port", type=int, default=3000, help="Port for modern UI (default: 3000)")
-def ui(port: int, host: str, modern: bool, ui_port: int):
-    """Launch MLflow UI for experiment tracking.
+@click.option("--port", default=3000, help="Port for the modern UI (default: 3000)")
+@click.option("--host", default="localhost", help="Host to bind to (default: localhost)")
+def ui(port, host):
+    """Launch the modern MLTrack UI dashboard."""
+    console.print(f"\n[bold green]🚀 Starting MLTrack Modern UI[/bold green]\n")
     
-    Examples:
-        mltrack ui                    # Classic MLflow UI
-        mltrack ui --modern          # Modern React UI
-        mltrack ui --modern --ui-port 3001  # Modern UI on custom port
-    """
-    from mltrack.ui import launch_ui
+    # Check if UI directory exists
+    ui_path = Path(__file__).parent.parent.parent / "ui"
+    if not ui_path.exists():
+        # Try alternate location
+        ui_path = Path.home() / "Documents" / "GitHub" / "mltrack" / "ui"
     
-    # Launch UI
-    try:
-        config = MLTrackConfig.find_config()
-        
-        if modern:
-            console.print("[bold cyan]🎨 Launching modern mltrack UI...[/bold cyan]")
-            console.print(f"   React UI: http://localhost:{ui_port}")
-            console.print(f"   MLflow API: http://localhost:{port}")
-        
-        launch_ui(
-            config=config,
-            port=port,
-            host=host,
-            modern=modern,
-            ui_port=ui_port
-        )
-    except KeyboardInterrupt:
-        console.print("\n[yellow]UI server stopped[/yellow]")
-    except Exception as e:
-        console.print(f"\n[red]Error launching UI:[/red] {e}")
-        console.print("\n[yellow]Troubleshooting:[/yellow]")
-        if modern:
-            console.print("• Check if Node.js is installed: [cyan]node --version[/cyan]")
-            console.print("• Check if npm is installed: [cyan]npm --version[/cyan]")
-            console.print("• Try the classic UI: [cyan]mltrack ui[/cyan]")
-        else:
-            console.print("• Check if MLflow is installed: [cyan]pip show mlflow[/cyan]")
-            console.print("• Try a different port: [cyan]mltrack ui --port 5001[/cyan]")
-            console.print("• Check MLflow logs for more details")
-
-
-@cli.group()
-def models():
-    """Model registry commands."""
-    pass
-
-
-# User management commands
-@cli.group()
-def user():
-    """Manage MLtrack users and API keys."""
-    pass
-
-
-@user.command()
-def info():
-    """Show current user information."""
-    user = get_current_user()
-    if user.id == "anonymous":
-        console.print("No user configured. You're running as anonymous.")
-        console.print("\nTo set up a user, run:")
-        console.print("  [cyan]mltrack user create --email your@email.com --name 'Your Name'[/cyan]")
-        console.print("\nOr set environment variable:")
-        console.print("  [cyan]export MLTRACK_API_KEY=your_api_key[/cyan]")
-    else:
-        console.print(f"Current user: [green]{user.name}[/green]")
-        console.print(f"Email: [cyan]{user.email}[/cyan]")
-        console.print(f"User ID: [dim]{user.id}[/dim]")
-        if user.team:
-            console.print(f"Team: [yellow]{user.team}[/yellow]")
-        if user.api_key and os.environ.get('MLTRACK_API_KEY') == user.api_key:
-            console.print("Authentication: [green]API Key (from environment)[/green]")
-        elif user.api_key:
-            console.print("Authentication: [yellow]Local user[/yellow]")
-        else:
-            console.print("Authentication: [dim]Git config[/dim]")
-
-
-@user.command()
-@click.option('--email', required=True, help='User email address')
-@click.option('--name', required=True, help='User display name')
-@click.option('--team', help='Team name')
-def create(email: str, name: str, team: Optional[str]):
-    """Create a new user and generate API key."""
-    try:
-        api_key = setup_api_key(email, name, team)
-        if api_key:
-            console.print(f"[green]✅ User created successfully![/green]")
-            console.print(f"\nYour API key: [bold cyan]{api_key}[/bold cyan]")
-            console.print("\nTo use this API key, set the environment variable:")
-            console.print(f"  [dim]export MLTRACK_API_KEY={api_key}[/dim]")
-            console.print("\nOr add it to your shell profile (~/.bashrc, ~/.zshrc, etc.)")
-            console.print("\n[yellow]⚠️  Keep this API key secure! It won't be shown again.[/yellow]")
-        else:
-            console.print("[yellow]User already exists. Use 'mltrack user reset-key' to generate a new API key.[/yellow]")
-    except Exception as e:
-        console.print(f"[red]Error creating user:[/red] {e}")
-        raise click.Abort()
-
-
-@user.command()
-def list():
-    """List all registered users."""
-    registry = UserRegistry()
-    users = registry.list_users()
-    
-    if not users:
-        console.print("[yellow]No users registered.[/yellow]")
+    if not ui_path.exists():
+        console.print("[red]❌ Modern UI not found![/red]")
+        console.print("\nPlease ensure the MLTrack UI is installed:")
+        console.print("  [dim]cd ~/Documents/GitHub/mltrack/ui && npm install[/dim]")
         return
     
-    # Create table
-    table = Table(title="Registered Users")
-    table.add_column("Name", style="cyan")
-    table.add_column("Email", style="green")
-    table.add_column("Team", style="yellow")
-    table.add_column("Has API Key", justify="center")
-    table.add_column("Created", style="dim")
+    # Change to UI directory
+    import os
+    os.chdir(ui_path)
     
-    for user in users:
-        table.add_row(
-            user.name,
-            user.email,
-            user.team or "-",
-            "✓" if user.api_key else "✗",
-            user.created_at[:10]  # Just date
-        )
+    # Check if node_modules exists
+    if not (ui_path / "node_modules").exists():
+        console.print("[yellow]⚠️  Dependencies not installed. Installing now...[/yellow]")
+        subprocess.run(["npm", "install"], check=True)
     
-    console.print(table)
-
-
-@models.command(name="register")
-@click.option("--run-id", required=True, help="MLflow run ID containing the model")
-@click.option("--name", required=True, help="Name for the registered model")
-@click.option("--path", default="model", help="Path to model in run artifacts (default: model)")
-@click.option("--stage", default="staging", type=click.Choice(["staging", "production", "archived"]))
-@click.option("--description", help="Model description")
-@click.option("--s3-bucket", envvar="MLTRACK_S3_BUCKET", help="S3 bucket for model storage")
-def register(run_id: str, name: str, path: str, stage: str, description: Optional[str], s3_bucket: Optional[str]):
-    """Register a model from an MLflow run."""
-    from mltrack.model_registry import ModelRegistry
+    console.print(f"Starting UI on [cyan]http://{host}:{port}[/cyan]")
+    console.print("\n[dim]Press Ctrl+C to stop[/dim]\n")
     
-    console.print(f"\n[bold]Registering model from run {run_id}...[/bold]")
+    # Start the Next.js dev server
+    env = os.environ.copy()
+    env["PORT"] = str(port)
+    env["HOST"] = host
     
     try:
-        registry = ModelRegistry(s3_bucket=s3_bucket)
-        
-        # Register the model
-        model_info = registry.register_model(
-            run_id=run_id,
-            model_name=name,
-            model_path=path,
-            stage=stage,
-            description=description
-        )
-        
-        console.print(f"\n[green]✅ Model registered successfully![/green]")
-        console.print(f"Name: [cyan]{model_info['model_name']}[/cyan]")
-        console.print(f"Version: [cyan]{model_info['version']}[/cyan]")
-        console.print(f"Stage: [cyan]{model_info['stage']}[/cyan]")
-        
-        if model_info.get("s3_location"):
-            console.print(f"S3 Location: [dim]{model_info['s3_location']}[/dim]")
-        
-        console.print("\n[bold]Loading code:[/bold]")
-        console.print(f"[dim]from mltrack import ModelRegistry[/dim]")
-        console.print(f"[dim]registry = ModelRegistry()[/dim]")
-        console.print(f"[dim]model = registry.load_model('{name}', '{model_info['version']}')[/dim]")
-        
-    except Exception as e:
-        console.print(f"[red]Error registering model:[/red] {e}")
+        subprocess.run(["npm", "run", "dev"], env=env, check=True)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]UI stopped[/yellow]")
 
 
-@models.command(name="list")
-@click.option("--stage", type=click.Choice(["staging", "production", "archived"]), help="Filter by stage")
-def list_models(stage: Optional[str]):
-    """List registered models."""
-    from mltrack.model_registry import ModelRegistry
+@cli.command()
+@click.option("--port", default=5000, help="Port for MLflow UI (default: 5000)")
+@click.option("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+def flow(port, host):
+    """Launch the classic MLflow UI."""
+    console.print(f"\n[bold]🔍 Starting MLflow Classic UI[/bold]\n")
+    
+    config = MLTrackConfig.find_config()
+    console.print(f"Tracking URI: [cyan]{config.tracking_uri}[/cyan]")
+    console.print(f"Starting UI on [cyan]http://{host}:{port}[/cyan]")
+    console.print("\n[dim]Press Ctrl+C to stop[/dim]\n")
     
     try:
-        registry = ModelRegistry()
-        models = registry.list_models(stage=stage)
-        
-        if not models:
-            console.print("[yellow]No models found in registry[/yellow]")
-            return
-        
-        # Create table
-        table = Table(title="Registered Models")
-        table.add_column("Name", style="cyan")
-        table.add_column("Version", style="green")
-        table.add_column("Stage", style="yellow")
-        table.add_column("Registered", style="dim")
-        table.add_column("Framework", style="magenta")
-        
-        for model in models:
-            table.add_row(
-                model.get("model_name", ""),
-                model.get("version", ""),
-                model.get("stage", ""),
-                model.get("registered_at", "")[:19],  # Truncate timestamp
-                model.get("framework", "unknown")
-            )
-        
-        console.print(table)
-        
-    except Exception as e:
-        console.print(f"[red]Error listing models:[/red] {e}")
-
-
-@models.command(name="info")
-@click.argument("model_name")
-@click.option("--version", help="Specific version (latest if not specified)")
-def model_info(model_name: str, version: Optional[str]):
-    """Show detailed model information."""
-    from mltrack.model_registry import ModelRegistry
-    
-    try:
-        registry = ModelRegistry()
-        model = registry.get_model(model_name, version)
-        
-        console.print(f"\n[bold]Model: {model['model_name']}[/bold]")
-        console.print(f"Version: [green]{model['version']}[/green]")
-        console.print(f"Stage: [yellow]{model['stage']}[/yellow]")
-        console.print(f"Registered: {model['registered_at']}")
-        
-        if model.get("description"):
-            console.print(f"\nDescription: {model['description']}")
-        
-        # Metrics
-        if model.get("metrics"):
-            console.print("\n[bold]Training Metrics:[/bold]")
-            for key, value in model["metrics"].items():
-                console.print(f"  {key}: {value:.4f}" if isinstance(value, float) else f"  {key}: {value}")
-        
-        # Parameters
-        if model.get("params"):
-            console.print("\n[bold]Parameters:[/bold]")
-            for key, value in model["params"].items():
-                console.print(f"  {key}: {value}")
-        
-        # S3 location
-        if model.get("s3_location"):
-            console.print(f"\n[bold]S3 Location:[/bold] {model['s3_location']}")
-        
-        # Git info
-        if model.get("git_commit"):
-            console.print(f"\n[bold]Git Commit:[/bold] {model['git_commit']}")
-        
-    except Exception as e:
-        console.print(f"[red]Error getting model info:[/red] {e}")
-
-
-@models.command(name="load-code")
-@click.argument("model_name")
-@click.option("--version", help="Specific version (latest if not specified)")
-@click.option("--output", "-o", type=click.Path(), help="Save code to file")
-def load_code(model_name: str, version: Optional[str], output: Optional[str]):
-    """Generate code to load a model."""
-    from mltrack.model_registry import ModelRegistry
-    
-    try:
-        registry = ModelRegistry()
-        code = registry.generate_loading_code(model_name, version)
-        
-        if output:
-            with open(output, "w") as f:
-                f.write(code)
-            console.print(f"[green]✅ Code saved to {output}[/green]")
-        else:
-            syntax = Syntax(code, "python", theme="monokai", line_numbers=True)
-            console.print(Panel(syntax, title=f"Loading code for {model_name}", border_style="cyan"))
-        
-    except Exception as e:
-        console.print(f"[red]Error generating code:[/red] {e}")
-
-
-@models.command(name="transition")
-@click.argument("model_name")
-@click.argument("version")
-@click.argument("stage", type=click.Choice(["staging", "production", "archived"]))
-@click.option("--archive-existing/--no-archive-existing", default=True, 
-              help="Archive existing production models when promoting to production")
-def transition(model_name: str, version: str, stage: str, archive_existing: bool):
-    """Transition a model to a different stage."""
-    from mltrack.model_registry import ModelRegistry
-    
-    try:
-        registry = ModelRegistry()
-        
-        # Confirm if promoting to production
-        if stage == "production":
-            console.print(f"\n[yellow]⚠️  Promoting model to production[/yellow]")
-            console.print(f"Model: {model_name}")
-            console.print(f"Version: {version}")
-            if not click.confirm("Are you sure?"):
-                console.print("[yellow]Cancelled[/yellow]")
-                return
-        
-        updated = registry.transition_model_stage(
-            model_name=model_name,
-            version=version,
-            stage=stage,
-            archive_existing=archive_existing
-        )
-        
-        console.print(f"\n[green]✅ Model transitioned to {stage}[/green]")
-        console.print(f"Model: {updated['model_name']}")
-        console.print(f"Version: {updated['version']}")
-        console.print(f"New stage: {updated['stage']}")
-        
-    except Exception as e:
-        console.print(f"[red]Error transitioning model:[/red] {e}")
+        subprocess.run([
+            sys.executable, "-m", "mlflow", "ui",
+            "--backend-store-uri", config.tracking_uri,
+            "--host", host,
+            "--port", str(port)
+        ], check=True)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]MLflow UI stopped[/yellow]")
 
 
 def main():
     """Main entry point for the CLI."""
     cli()
-
-
-# Add intuitive shortcuts
-@click.command(name="save")
-@click.argument("name", required=False)
-@click.option("--run-id", help="Specific run ID to save")
-@click.option("--description", help="Model description")
-def save_shortcut(name: Optional[str], run_id: Optional[str], description: Optional[str]):
-    """Save the most recent model to the registry."""
-    from mltrack.deployment.cli_shortcuts import SmartCLI
-    smart_cli = SmartCLI()
-    smart_cli.save_model(name=name, run_id=run_id, description=description)
-
-
-@click.command(name="ship")
-@click.argument("model", required=False)
-@click.option("--gpu", is_flag=True, help="Include GPU support")
-@click.option("--push", is_flag=True, help="Push to registry after build")
-@click.option("--optimize/--no-optimize", default=True, help="Optimize for size")
-@click.option("--platform", multiple=True, help="Target platforms (e.g., linux/amd64)")
-@click.option("--registry", help="Container registry URL")
-def ship_shortcut(model: Optional[str], gpu: bool, push: bool, optimize: bool, platform: tuple, registry: Optional[str]):
-    """Build and ship a model as a container."""
-    from mltrack.deployment.cli_shortcuts import SmartCLI
-    smart_cli = SmartCLI()
-    smart_cli.ship_model(
-        model_name=model,
-        gpu=gpu,
-        push=push,
-        optimize=optimize,
-        platform=list(platform) if platform else None,
-        registry_url=registry,
-    )
-
-
-@click.command(name="serve")
-@click.argument("model", required=False)
-@click.option("--port", default=8000, help="Port to serve on")
-@click.option("--prod", is_flag=True, help="Production mode")
-@click.option("-d", "--detach", is_flag=True, help="Run in background")
-def serve_shortcut(model: Optional[str], port: int, prod: bool, detach: bool):
-    """Serve a model as an API."""
-    from mltrack.deployment.cli_shortcuts import SmartCLI
-    smart_cli = SmartCLI()
-    smart_cli.serve_model(model_name=model, port=port, production=prod, detach=detach)
-
-
-@click.command(name="try")
-@click.argument("model", required=False)
-@click.option("--port", default=8000, help="Port to use")
-def try_shortcut(model: Optional[str], port: int):
-    """Test a model interactively."""
-    from mltrack.deployment.cli_shortcuts import SmartCLI
-    smart_cli = SmartCLI()
-    smart_cli.try_model(model_name=model, port=port)
-
-
-@click.command(name="list")
-@click.option("--stage", type=click.Choice(["staging", "production", "archived"]), help="Filter by stage")
-def list_shortcut(stage: Optional[str]):
-    """List saved models."""
-    from mltrack.deployment.cli_shortcuts import SmartCLI
-    smart_cli = SmartCLI()
-    smart_cli.list_models(stage=stage)
-
-
-# Create the ml command group
-@click.group(name="ml")
-def ml_cli():
-    """MLTrack - Simple commands for ML deployment."""
-    pass
-
-
-# Add all shortcuts to ml group
-ml_cli.add_command(save_shortcut, name="save")
-ml_cli.add_command(ship_shortcut, name="ship")
-ml_cli.add_command(serve_shortcut, name="serve")
-ml_cli.add_command(try_shortcut, name="try")
-ml_cli.add_command(list_shortcut, name="list")
-
-# Also add existing track command for consistency
-@ml_cli.command(name="track")
-@click.argument("command", nargs=-1, required=True)
-@click.option("--name", help="Custom name for the run")
-@click.option("--tags", help="Comma-separated tags")
-def track_shortcut(command: tuple, name: Optional[str], tags: Optional[str]):
-    """Track a command execution."""
-    run(command, name, tags)
-
-
-# Update main to handle both mltrack and ml
-def main():
-    """Main entry point for the CLI."""
-    import sys
-    
-    # Check if called as 'ml'
-    if sys.argv[0].endswith('ml'):
-        ml_cli()
-    else:
-        cli()
 
 
 if __name__ == "__main__":

@@ -38,16 +38,6 @@ class FrameworkDetector:
             "keras": ("Keras", self._setup_keras),
             "fastai": ("fastai", self._setup_fastai),
             "transformers": ("Transformers", self._setup_transformers),
-            # LLM frameworks
-            "openai": ("OpenAI", self._setup_openai),
-            "anthropic": ("Anthropic", self._setup_anthropic),
-            "langchain": ("LangChain", self._setup_langchain),
-            "langchain_community": ("LangChain Community", None),  # No autolog, but detect
-            "langchain_openai": ("LangChain OpenAI", None),  # No autolog, but detect
-            "langchain_anthropic": ("LangChain Anthropic", None),  # No autolog, but detect
-            "llama_index": ("LlamaIndex", self._setup_llamaindex),
-            "litellm": ("LiteLLM", self._setup_litellm),
-            "dspy": ("DSPy", self._setup_dspy),
         }
         
         for import_name, (display_name, setup_func) in frameworks_to_check.items():
@@ -143,54 +133,6 @@ class FrameworkDetector:
         """Set up auto-logging for Transformers."""
         import mlflow.transformers
         mlflow.transformers.autolog()
-    
-    def _setup_openai(self) -> None:
-        """Set up auto-logging for OpenAI."""
-        try:
-            import mlflow.openai
-            mlflow.openai.autolog()
-        except (ImportError, AttributeError):
-            # Fallback for older MLflow versions
-            logger.warning("MLflow OpenAI autolog not available. Consider upgrading MLflow.")
-    
-    def _setup_anthropic(self) -> None:
-        """Set up auto-logging for Anthropic."""
-        try:
-            import mlflow.anthropic
-            mlflow.anthropic.autolog()
-        except (ImportError, AttributeError):
-            # Fallback for older MLflow versions
-            logger.warning("MLflow Anthropic autolog not available. Consider upgrading MLflow.")
-    
-    def _setup_langchain(self) -> None:
-        """Set up auto-logging for LangChain."""
-        try:
-            import mlflow.langchain
-            mlflow.langchain.autolog()
-        except (ImportError, AttributeError):
-            logger.warning("MLflow LangChain autolog not available. Consider upgrading MLflow.")
-    
-    def _setup_llamaindex(self) -> None:
-        """Set up auto-logging for LlamaIndex."""
-        try:
-            import mlflow.llama_index
-            mlflow.llama_index.autolog()
-        except (ImportError, AttributeError):
-            logger.warning("MLflow LlamaIndex autolog not available. Consider upgrading MLflow.")
-    
-    def _setup_litellm(self) -> None:
-        """Set up auto-logging for LiteLLM."""
-        # LiteLLM doesn't have direct MLflow autolog support yet
-        # We'll need to implement custom tracking
-        logger.info("LiteLLM detected - custom tracking will be applied")
-    
-    def _setup_dspy(self) -> None:
-        """Set up auto-logging for DSPy."""
-        try:
-            import mlflow.dspy
-            mlflow.dspy.autolog()
-        except (ImportError, AttributeError):
-            logger.warning("MLflow DSPy autolog not available. Consider upgrading MLflow.")
 
 
 def get_model_info(model: Any) -> Dict[str, Any]:

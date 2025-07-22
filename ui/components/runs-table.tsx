@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { extractRunTags, getRunType, getModelInfo } from '@/lib/utils/mlflow-tags';
+import { UserInfo, extractUserInfo } from '@/components/user-info';
 
 const StatusIcon = {
   FINISHED: CheckCircle,
@@ -109,6 +110,7 @@ export function RunsTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Run ID</TableHead>
+            <TableHead>User</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Model</TableHead>
             <TableHead>Status</TableHead>
@@ -133,6 +135,7 @@ export function RunsTable() {
             const tags = extractRunTags(run);
             const runType = getRunType(tags);
             const { algorithm: modelAlgorithm, framework: modelFramework, task: modelTask } = getModelInfo(tags);
+            const userInfo = extractUserInfo(tags);
 
             // Determine run type badge variant
             const getTypeBadgeVariant = (type: string) => {
@@ -147,6 +150,16 @@ export function RunsTable() {
               <TableRow key={run.info.run_id}>
                 <TableCell className="font-mono text-sm">
                   {run.info.run_id.slice(0, 8)}...
+                </TableCell>
+                <TableCell>
+                  <UserInfo
+                    userId={userInfo.userId}
+                    userName={userInfo.userName}
+                    userEmail={userInfo.userEmail}
+                    userTeam={userInfo.userTeam}
+                    avatarSize="xs"
+                    showName={true}
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant={getTypeBadgeVariant(runType)} className="text-xs">

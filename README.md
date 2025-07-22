@@ -9,8 +9,8 @@
     <a href="https://github.com/EconoBen/mltrack/actions">
       <img src="https://github.com/EconoBen/mltrack/actions/workflows/test.yml/badge.svg" alt="Test Status">
     </a>
-    <a href="https://pypi.org/project/mltrack/">
-      <img src="https://img.shields.io/pypi/v/mltrack.svg" alt="PyPI Version">
+    <a href="https://pypi.org/project/ml-track/">
+      <img src="https://img.shields.io/pypi/v/ml-track.svg" alt="PyPI Version">
     </a>
     <a href="https://github.com/EconoBen/mltrack/blob/main/LICENSE">
       <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
@@ -160,7 +160,7 @@ ml flow        # Launch classic MLflow UI (default port 5000)
 ### Installation
 
 ```bash
-pip install mltrack
+pip install ml-track
 ```
 
 ### Basic Usage
@@ -205,7 +205,7 @@ print(f"Model deployed to: {endpoint.url}")
 export MLFLOW_TRACKING_URI=http://your-mlflow-server:5000
 
 # Add MLTrack for better UI and deployment
-pip install mltrack
+pip install ml-track
 
 # Train and deploy in one script
 python train.py  # Tracks with MLflow, deploys with MLTrack

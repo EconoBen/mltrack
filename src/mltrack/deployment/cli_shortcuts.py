@@ -16,6 +16,7 @@ from rich import print as rprint
 
 from mltrack.model_registry import ModelRegistry
 from mltrack.deployment.docker.uv_builder import DockerBuilder
+from mltrack.deploy import deploy_to_modal, DeploymentConfig, get_deployment_status, DeploymentStatus
 from mlflow.tracking import MlflowClient
 
 
@@ -178,6 +179,8 @@ class SmartCLI:
         platform: Optional[List[str]] = None,
         optimize: bool = True,
         registry_url: Optional[str] = None,
+        modal: bool = False,
+        modal_gpu: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Build and ship a model container (ml ship)."""
         # Select model
@@ -187,13 +190,30 @@ class SmartCLI:
         
         # Check if it's a run ID that needs to be saved first
         if len(model_name) == 32 and "-" not in model_name:  # Likely a run ID
+            run_id = model_name
             console.print("\n📝 This model needs to be saved first.")
             save_result = self.save_model(run_id=model_name)
             if not save_result["success"]:
                 return {"success": False}
             model_name = save_result["model_name"]
+        else:
+            # Get run ID from model name
+            try:
+                model_info = self.registry.get_model(model_name)
+                run_id = model_info.get("run_id")
+                if not run_id:
+                    console.print(f"[red]Cannot find run ID for model '{model_name}'[/red]")
+                    return {"success": False}
+            except:
+                console.print(f"[red]Model '{model_name}' not found in registry[/red]")
+                return {"success": False}
         
-        # Build container
+        # Deploy to Modal if requested
+        if modal:
+            console.print(f"\n🚀 [bold]Deploying model to Modal: {model_name}[/bold]")
+            return self._ship_to_modal(run_id, model_name, modal_gpu)
+        
+        # Build container (existing Docker logic)
         console.print(f"\n🚢 [bold]Shipping model: {model_name}[/bold]")
         
         with Progress(
@@ -511,3 +531,103 @@ open {docs_url}
         console.print("   [dim]ml ship <model>[/dim]  - Build container")
         console.print("   [dim]ml serve <model>[/dim] - Serve locally")
         console.print("   [dim]ml try <model>[/dim]   - Test interactively")
+    
+    def _ship_to_modal(self, run_id: str, model_name: str, gpu: Optional[str] = None) -> Dict[str, Any]:
+        """Deploy a model to Modal."""
+        try:
+            # Prepare deployment configuration
+            app_name = model_name.lower().replace(" ", "-").replace("_", "-")
+            
+            # Default configuration
+            config_params = {
+                "app_name": f"mltrack-{app_name}",
+                "model_name": model_name,
+                "model_version": "latest",
+                "cpu": 1.0,
+                "memory": 512,
+                "min_replicas": 1,
+                "max_replicas": 5,
+                "python_version": "3.11"
+            }
+            
+            # Add GPU if requested
+            if gpu:
+                config_params["gpu"] = gpu
+                config_params["memory"] = 2048  # More memory for GPU
+            
+            # Get model info for framework-specific requirements
+            try:
+                run = self.mlflow_client.get_run(run_id)
+                tags = run.data.tags
+                framework = tags.get("mltrack.framework", "").lower()
+                
+                # Set framework-specific requirements
+                if "sklearn" in framework or "scikit" in framework:
+                    config_params["requirements"] = ["scikit-learn", "numpy", "pandas"]
+                elif "torch" in framework or "pytorch" in framework:
+                    config_params["requirements"] = ["torch", "numpy", "pillow"]
+                    config_params["cpu"] = 2.0
+                    config_params["memory"] = 4096
+                elif "tensorflow" in framework or "keras" in framework:
+                    config_params["requirements"] = ["tensorflow", "numpy", "pillow"]
+                    config_params["cpu"] = 2.0
+                    config_params["memory"] = 4096
+                else:
+                    config_params["requirements"] = ["numpy", "pandas"]
+            except:
+                pass
+            
+            config = DeploymentConfig(**config_params)
+            
+            # Deploy with progress tracking
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                transient=True,
+            ) as progress:
+                task = progress.add_task("Deploying to Modal...", total=None)
+                
+                # Deploy
+                deployment_info = deploy_to_modal(run_id, config)
+                deployment_id = deployment_info["deployment_id"]
+                
+                # Wait for deployment to be ready
+                progress.update(task, description="Waiting for deployment to be ready...")
+                timeout = 300  # 5 minutes
+                start_time = time.time()
+                
+                while time.time() - start_time < timeout:
+                    status = get_deployment_status(deployment_id)
+                    if status and status["status"] == DeploymentStatus.RUNNING.value:
+                        break
+                    elif status and status["status"] == DeploymentStatus.FAILED.value:
+                        raise Exception(f"Deployment failed: {status.get('error', 'Unknown error')}")
+                    time.sleep(5)
+                else:
+                    raise Exception("Deployment timed out")
+            
+            # Success!
+            endpoint_url = status.get("endpoint_url", "")
+            console.print(f"\n✅ [green]Model deployed to Modal successfully![/green]")
+            console.print(f"   Deployment ID: [cyan]{deployment_id}[/cyan]")
+            console.print(f"   Endpoint: [cyan]{endpoint_url}[/cyan]")
+            console.print(f"   API Docs: [cyan]{endpoint_url}/docs[/cyan]")
+            console.print(f"\n💡 [bold]Test your model:[/bold]")
+            console.print(f"   [dim]ml try {model_name} --modal[/dim]")
+            console.print(f"\n💡 [bold]Stop deployment:[/bold]")
+            console.print(f"   [dim]make modal-stop DEPLOYMENT_ID={deployment_id}[/dim]")
+            
+            return {
+                "success": True,
+                "deployment_id": deployment_id,
+                "endpoint_url": endpoint_url,
+                "status": "running"
+            }
+            
+        except Exception as e:
+            console.print(f"\n❌ [red]Modal deployment failed: {e}[/red]")
+            console.print("\n[yellow]Troubleshooting:[/yellow]")
+            console.print("1. Check Modal authentication: [dim]modal token list[/dim]")
+            console.print("2. Check AWS credentials in .env file")
+            console.print("3. Run setup: [dim]make setup-modal[/dim]")
+            return {"success": False, "error": str(e)}
