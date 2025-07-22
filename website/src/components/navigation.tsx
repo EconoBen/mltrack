@@ -17,11 +17,11 @@ export function Navigation() {
     >
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center font-bold text-white text-xl shadow-lg">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center font-bold text-white">
               M
             </div>
-            <span className="font-bold text-xl">MLTrack</span>
+            <span className="font-semibold text-lg">MLTrack</span>
           </Link>
           
           <div className="hidden md:flex items-center gap-8">

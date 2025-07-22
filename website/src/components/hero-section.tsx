@@ -14,8 +14,6 @@ export function HeroSection() {
       {/* Grid pattern */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
       
-      {/* Dark overlay for better text contrast */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/50 pointer-events-none" />
       
       <div className="relative z-10 w-full max-w-7xl mx-auto">
         <div className="text-center mb-12">
@@ -33,7 +31,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-white to-purple-200 bg-clip-text text-transparent leading-tight"
+            className="text-5xl md:text-7xl font-bold mb-6 text-gray-900 leading-tight"
           >
             Stop experimenting.
             <br />
@@ -44,7 +42,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-gray-100 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl text-gray-800 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
             Drop-in enhancement for MLflow that adds deployment capabilities and a modern UI. 
             Deploy ML models in minutes, not weeks.
