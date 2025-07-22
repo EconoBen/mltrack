@@ -26,9 +26,9 @@ install: install-python install-node ## Install all dependencies (Python + Node.
 
 .PHONY: install-python
 install-python: ## Install Python dependencies
-	@echo "📦 Installing Python dependencies..."
-	pip install -r requirements.txt
-	pip install -r scripts/requirements.txt
+	@echo "📦 Installing Python dependencies with uv..."
+	uv sync
+	@echo "✅ Dependencies installed from pyproject.toml"
 
 .PHONY: install-node
 install-node: ## Install Node.js dependencies

@@ -78,6 +78,20 @@ ml = "mltrack.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mltrack"]
 
+[tool.hatch.build]
+exclude = [
+    "/.git",
+    "/.venv*",
+    "/website",
+    "/ui",
+    "/scripts",
+    "/examples",
+    "/tests",
+    "/docs",
+    "/.github",
+    "*.egg-info",
+]
+
 [tool.ruff]
 target-version = "py38"
 line-length = 100

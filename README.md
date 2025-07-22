@@ -160,7 +160,7 @@ ml flow        # Launch classic MLflow UI (default port 5000)
 ### Installation
 
 ```bash
-pip install ml-track
+uv add ml-track
 ```
 
 ### Basic Usage
@@ -205,7 +205,7 @@ print(f"Model deployed to: {endpoint.url}")
 export MLFLOW_TRACKING_URI=http://your-mlflow-server:5000
 
 # Add MLTrack for better UI and deployment
-pip install ml-track
+uv add ml-track
 
 # Train and deploy in one script
 python train.py  # Tracks with MLflow, deploys with MLTrack
