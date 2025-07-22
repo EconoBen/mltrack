@@ -13,7 +13,7 @@ export function Navigation() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-lg border-b border-white/20"
+      className="fixed top-0 left-0 right-0 z-50 bg-gray-900/90 backdrop-blur-xl border-b border-white/10"
     >
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
@@ -25,13 +25,13 @@ export function Navigation() {
           </Link>
           
           <div className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-gray-300 hover:text-white transition-colors">
+            <Link href="#features" className="text-white/80 hover:text-white transition-colors">
               Features
             </Link>
-            <Link href="#how-it-works" className="text-gray-300 hover:text-white transition-colors">
+            <Link href="#how-it-works" className="text-white/80 hover:text-white transition-colors">
               How it works
             </Link>
-            <Link href="https://github.com/EconoBen/mltrack/wiki" className="text-gray-300 hover:text-white transition-colors">
+            <Link href="https://github.com/EconoBen/mltrack/wiki" className="text-white/80 hover:text-white transition-colors">
               Docs
             </Link>
           </div>
@@ -61,7 +61,7 @@ export function Navigation() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/10"
+          className="md:hidden bg-gray-900/95 backdrop-blur-xl border-t border-white/10"
         >
           <div className="px-4 py-4 space-y-2">
             <Link

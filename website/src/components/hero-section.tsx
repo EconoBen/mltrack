@@ -30,7 +30,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent leading-tight"
+            className="text-5xl md:text-7xl font-bold mb-6 text-white leading-tight"
           >
             Stop experimenting.
             <br />
@@ -41,7 +41,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
             Drop-in enhancement for MLflow that adds deployment capabilities and a modern UI. 
             Deploy ML models in minutes, not weeks.
