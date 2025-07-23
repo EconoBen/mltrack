@@ -1,4 +1,4 @@
-import { Github, Twitter } from "lucide-react";
+import { Github, Twitter, Linkedin } from "lucide-react";
 import Link from "next/link";
 
 export function Footer() {
@@ -13,22 +13,17 @@ export function Footer() {
               </div>
               <span className="font-semibold text-lg">MLTrack</span>
             </div>
-            <p className="text-gray-300 text-sm">
+            <p className="text-gray-400 text-sm">
               Stop experimenting. Start shipping.
             </p>
           </div>
-          
+
           <div>
             <h3 className="font-semibold mb-4">Product</h3>
-            <ul className="space-y-2 text-sm text-gray-300">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="#features" className="hover:text-white transition-colors">
                   Features
-                </Link>
-              </li>
-              <li>
-                <Link href="#pricing" className="hover:text-white transition-colors">
-                  Pricing
                 </Link>
               </li>
               <li>
@@ -38,10 +33,10 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          
+
           <div>
             <h3 className="font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2 text-sm text-gray-300">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="https://github.com/EconoBen/mltrack" className="hover:text-white transition-colors">
                   GitHub
@@ -59,7 +54,7 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          
+
           <div>
             <h3 className="font-semibold mb-4">Connect</h3>
             <div className="flex gap-4">
@@ -75,13 +70,18 @@ export function Footer() {
               >
                 <Twitter className="w-5 h-5" />
               </Link>
+              <Link
+                href="https://www.linkedin.com/in/benjamin-labaschin/"
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <Linkedin className="w-5 h-5" />
+              </Link>
             </div>
           </div>
         </div>
-        
-        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-sm text-gray-300">
-          <p>© 2025 MLTrack. Built by Ben LaBaschin.</p>
-          <p>Open source under MIT License</p>
+
+        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-sm text-gray-400">
+          <p>© 2025 MLTrack. Built by Ben Labaschin.</p>
         </div>
       </div>
     </footer>

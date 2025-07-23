@@ -24,14 +24,14 @@ export function CTASection() {
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
               Ready to ship your models?
             </h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
               Join the growing community of ML engineers who ship models in minutes, not weeks.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="https://github.com/EconoBen/mltrack"
-                className="group flex items-center gap-2 px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all text-lg"
+                className="group flex items-center gap-2 px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all text-lg hover:scale-105"
               >
                 <Github className="w-6 h-6" />
                 Get Started on GitHub

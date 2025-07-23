@@ -80,7 +80,7 @@ export function FeaturesSection() {
               ship ML models
             </span>
           </h2>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Built by ML engineers who got tired of the deployment dance.
           </p>
         </motion.div>
@@ -109,7 +109,7 @@ export function FeaturesSection() {
               </div>
               
               <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-gray-300 text-sm">{feature.description}</p>
+              <p className="text-gray-600 text-sm">{feature.description}</p>
             </motion.div>
           ))}
         </div>

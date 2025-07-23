@@ -9,10 +9,10 @@ export function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20 pointer-events-none select-none" />
       
       {/* Grid pattern */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] select-none" />
       
       
       <div className="relative z-10 w-full max-w-7xl mx-auto">
@@ -56,7 +56,7 @@ export function HeroSection() {
           >
             <Link
               href="https://github.com/EconoBen/mltrack"
-              className="group flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all"
+              className="group flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all hover:scale-105"
             >
               <Github className="w-5 h-5" />
               Get Started
@@ -65,7 +65,7 @@ export function HeroSection() {
             
             <Link
               href="#features"
-              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/15 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/20 shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/15 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/20 shadow-lg hover:scale-105"
             >
               See it in action
             </Link>
@@ -75,7 +75,7 @@ export function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-400"
+            className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-500"
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />

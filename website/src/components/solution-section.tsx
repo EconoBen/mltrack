@@ -41,7 +41,7 @@ export function SolutionSection() {
             MLTrack makes it{" "}
             <span className="text-purple-500">delightfully simple</span>
           </h2>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Keep using MLflow. Add MLTrack. Ship models in minutes.
           </p>
         </motion.div>
@@ -59,7 +59,7 @@ export function SolutionSection() {
               <div className="grid md:grid-cols-2 gap-6 items-center">
                 <div>
                   <div className="text-sm text-red-400 mb-2">Before MLTrack:</div>
-                  <code className="text-sm text-gray-400 line-through font-mono">
+                  <code className="text-sm text-gray-500 line-through font-mono">
                     {solution.before}
                   </code>
                 </div>
@@ -72,7 +72,7 @@ export function SolutionSection() {
               </div>
               <div className="mt-4 flex items-start gap-3">
                 <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <p className="text-gray-300">{solution.description}</p>
+                <p className="text-gray-600">{solution.description}</p>
               </div>
             </motion.div>
           ))}
@@ -85,7 +85,7 @@ export function SolutionSection() {
           viewport={{ once: true }}
           className="mt-12 text-center"
         >
-          <p className="text-lg text-gray-300 mb-6">
+          <p className="text-lg text-gray-600 mb-6">
             100% compatible with your existing MLflow setup
           </p>
           <div className="flex items-center justify-center gap-4">

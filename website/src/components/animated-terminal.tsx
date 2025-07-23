@@ -75,7 +75,7 @@ export function AnimatedTerminal() {
       transition={{ duration: 0.5 }}
       className="w-full max-w-3xl mx-auto"
     >
-      <div className="bg-[#0a0a0a] rounded-lg border border-[#262626] shadow-2xl overflow-hidden">
+      <div className="bg-[#0a0a0a] rounded-lg border border-[#262626] shadow-2xl shadow-purple-500/10 overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] border-b border-[#262626]">
           <div className="flex gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -86,7 +86,7 @@ export function AnimatedTerminal() {
             mltrack-demo
           </div>
         </div>
-        <div className="p-4 font-mono text-sm">
+        <div className="p-4 font-mono text-sm min-h-[400px]">
           <div className="space-y-2">
             {displayedCommands.map((cmd, index) => (
               <div key={index}>
@@ -97,7 +97,7 @@ export function AnimatedTerminal() {
                   </div>
                 )}
                 {cmd.output && (
-                  <div className="text-[#a3a3a3] pl-4">{cmd.output}</div>
+                  <div className="text-[#d3d3d3] pl-4">{cmd.output}</div>
                 )}
               </div>
             ))}
@@ -109,7 +109,7 @@ export function AnimatedTerminal() {
                     <span className="text-white">{currentText}</span>
                   </>
                 ) : (
-                  <div className="text-[#a3a3a3] pl-4">{currentText}</div>
+                  <div className="text-[#d3d3d3] pl-4">{currentText}</div>
                 )}
                 <motion.span
                   animate={{ opacity: [1, 0] }}

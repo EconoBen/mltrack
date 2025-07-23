@@ -18,10 +18,10 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-lg shadow-purple-500/25 border border-purple-400/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-lg shadow-purple-500/25 border border-purple-400/20 hover:shadow-purple-500/40 transition-all">
               M
             </div>
-            <span className="font-bold text-xl tracking-tight">MLTrack</span>
+            <span className="font-bold text-xl tracking-tight text-white">MLTrack</span>
           </Link>
           
           <div className="hidden md:flex items-center gap-8">
@@ -39,7 +39,7 @@ export function Navigation() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="https://github.com/EconoBen/mltrack"
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/10"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/10 hover:scale-105"
             >
               <Github className="w-4 h-4" />
               GitHub
@@ -87,7 +87,7 @@ export function Navigation() {
             </Link>
             <Link
               href="https://github.com/EconoBen/mltrack"
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/10 mt-4"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-all border border-white/10 mt-4 hover:scale-105"
               onClick={() => setIsOpen(false)}
             >
               <Github className="w-4 h-4" />

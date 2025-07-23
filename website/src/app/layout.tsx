@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "MLTrack - Stop experimenting. Start shipping.",
   description: "Drop-in enhancement for MLflow that adds deployment capabilities and a modern UI. Deploy ML models in minutes, not weeks.",
   keywords: ["MLflow", "machine learning", "deployment", "MLOps", "model deployment", "AI"],
-  authors: [{ name: "Ben LaBaschin" }],
+  authors: [{ name: "Ben Labaschin" }],
   openGraph: {
     title: "MLTrack - Stop experimenting. Start shipping.",
     description: "Drop-in enhancement for MLflow that adds deployment capabilities and a modern UI.",
