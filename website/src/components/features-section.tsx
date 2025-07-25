@@ -23,7 +23,7 @@ const features = [
     icon: Palette,
     title: "Beautiful modern UI",
     description: "Finally, an ML dashboard that doesn't look like it's from 2015. Dark mode included.",
-    gradient: "from-purple-500 to-pink-500",
+    gradient: "from-teal-500 to-cyan-500",
   },
   {
     icon: Globe,
@@ -35,19 +35,19 @@ const features = [
     icon: Terminal,
     title: "CLI that sparks joy",
     description: "Intuitive commands that make sense. ml train, ml save, ml ship. That's it.",
-    gradient: "from-green-500 to-teal-500",
+    gradient: "from-emerald-500 to-teal-500",
   },
   {
     icon: DollarSign,
     title: "Cost tracking built-in",
     description: "See exactly how much each model costs to train and deploy. No surprises.",
-    gradient: "from-red-500 to-pink-500",
+    gradient: "from-amber-500 to-orange-500",
   },
   {
     icon: Users,
     title: "Team-friendly",
     description: "Share models, track experiments, and collaborate without the complexity.",
-    gradient: "from-indigo-500 to-purple-500",
+    gradient: "from-indigo-500 to-teal-500",
   },
   {
     icon: Shield,
@@ -76,11 +76,11 @@ export function FeaturesSection() {
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Everything you need to{" "}
-            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
               ship ML models
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
             Built by ML engineers who got tired of the deployment dance.
           </p>
         </motion.div>
@@ -109,7 +109,7 @@ export function FeaturesSection() {
               </div>
               
               <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-gray-600 text-sm">{feature.description}</p>
+              <p className="text-slate-600 text-sm">{feature.description}</p>
             </motion.div>
           ))}
         </div>

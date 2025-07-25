@@ -1,0 +1,16 @@
+{
+  "index": {
+    "title": "Introduction",
+    "theme": {
+      "layout": "raw"
+    }
+  },
+  "getting-started": "Getting Started",
+  "core-concepts": "Core Concepts", 
+  "guides": "User Guides",
+  "cli": "CLI Reference",
+  "api": "API Reference",
+  "examples": "Examples",
+  "advanced": "Advanced Topics",
+  "reference": "Reference"
+}

@@ -1,0 +1,322 @@
+import { Callout } from 'nextra/components'
+
+# Command Line Interface
+
+MLTrack provides a powerful CLI for managing experiments, models, and deployments. All commands follow the pattern `ml <command> [options]`.
+
+## Core Commands
+
+### `ml init`
+
+Initialize a new MLTrack project in the current directory.
+
+```bash
+ml init [OPTIONS]
+```
+
+**Options:**
+- `--team <name>` - Set team name for shared experiments
+- `--tracking-uri <uri>` - MLflow tracking server URI
+- `--force` - Overwrite existing configuration
+
+**Example:**
+```bash
+ml init --team research --tracking-uri http://localhost:5000
+```
+
+### `ml train`
+
+Run a training script with automatic tracking.
+
+```bash
+ml train <script> [OPTIONS]
+```
+
+**Options:**
+- `--name <name>` - Experiment name (default: script name)
+- `--params <key=value>` - Additional parameters to log
+- `--env <key=value>` - Environment variables
+
+**Example:**
+```bash
+ml train model.py --name "bert-fine-tuning" --params "learning_rate=0.001"
+```
+
+<Callout>
+  `ml train` automatically detects and tracks metrics from popular ML frameworks!
+</Callout>
+
+### `ml ui`
+
+Launch the MLTrack web interface.
+
+```bash
+ml ui [OPTIONS]
+```
+
+**Options:**
+- `--port <port>` - Port number (default: 3000)
+- `--host <host>` - Host address (default: localhost)
+- `--no-browser` - Don't open browser automatically
+
+**Example:**
+```bash
+ml ui --port 8080 --no-browser
+```
+
+### `ml save`
+
+Save a model from a run to the model registry.
+
+```bash
+ml save <name> [OPTIONS]
+```
+
+**Options:**
+- `--run-id <id>` - Run ID to save from (default: last run)
+- `--stage <stage>` - Model stage (None, Staging, Production)
+- `--description <desc>` - Model description
+
+**Example:**
+```bash
+ml save my-classifier --run-id abc123 --stage Staging
+```
+
+### `ml ship`
+
+Deploy a model to production.
+
+```bash
+ml ship <name> [OPTIONS]
+```
+
+**Options:**
+- `--modal` - Deploy to Modal
+- `--aws` - Deploy to AWS Lambda (coming soon)
+- `--docker` - Generate Docker image
+- `--version <version>` - Model version to deploy
+
+**Example:**
+```bash
+ml ship my-classifier --modal
+```
+
+### `ml try`
+
+Test a deployed model with sample data.
+
+```bash
+ml try <name> [OPTIONS]
+```
+
+**Options:**
+- `--data <json>` - Input data as JSON
+- `--file <path>` - Input data from file
+- `--endpoint <url>` - Custom endpoint URL
+
+**Example:**
+```bash
+ml try my-classifier --data '{"features": [1.0, 2.0, 3.0]}'
+```
+
+## Utility Commands
+
+### `ml list`
+
+List experiments, runs, or models.
+
+```bash
+ml list [experiments|runs|models] [OPTIONS]
+```
+
+**Options:**
+- `--limit <n>` - Number of items to show
+- `--filter <expr>` - Filter expression
+- `--sort <field>` - Sort by field
+
+**Examples:**
+```bash
+# List recent experiments
+ml list experiments --limit 10
+
+# List runs with high accuracy
+ml list runs --filter "metrics.accuracy > 0.9"
+
+# List production models
+ml list models --filter "stage='Production'"
+```
+
+### `ml show`
+
+Display detailed information about a run or model.
+
+```bash
+ml show [run|model] <id> [OPTIONS]
+```
+
+**Options:**
+- `--metrics` - Show all metrics
+- `--params` - Show all parameters
+- `--artifacts` - List artifacts
+
+**Example:**
+```bash
+ml show run abc123 --metrics --params
+```
+
+### `ml doctor`
+
+Diagnose MLTrack installation and configuration.
+
+```bash
+ml doctor [OPTIONS]
+```
+
+**Options:**
+- `--check-updates` - Check for MLTrack updates
+- `--fix` - Attempt to fix issues
+
+**Example:**
+```bash
+ml doctor --check-updates
+```
+
+## Configuration Commands
+
+### `ml config`
+
+Manage MLTrack configuration.
+
+```bash
+ml config [get|set|list] [OPTIONS]
+```
+
+**Examples:**
+```bash
+# List all config values
+ml config list
+
+# Get specific value
+ml config get tracking.uri
+
+# Set value
+ml config set team.name "research-team"
+```
+
+### `ml auth`
+
+Manage authentication and API keys.
+
+```bash
+ml auth [login|logout|status] [OPTIONS]
+```
+
+**Examples:**
+```bash
+# Login with API key
+ml auth login --key YOUR_API_KEY
+
+# Check auth status
+ml auth status
+```
+
+## Advanced Usage
+
+### Command Chaining
+
+Chain commands for complex workflows:
+
+```bash
+# Train, save, and deploy in one line
+ml train model.py && ml save classifier && ml ship classifier --modal
+```
+
+### Environment Variables
+
+Set defaults using environment variables:
+
+```bash
+export MLTRACK_EXPERIMENT_NAME="production-models"
+export MLTRACK_DEPLOY_PLATFORM="modal"
+```
+
+### Configuration File
+
+Create `.mltrack.yml` for project defaults:
+
+```yaml
+project:
+  name: "my-ml-project"
+  team: "research"
+
+tracking:
+  uri: "http://localhost:5000"
+  
+deployment:
+  default_platform: "modal"
+  auto_scale: true
+```
+
+## Command Shortcuts
+
+MLTrack provides intuitive shortcuts:
+
+| Long Form | Short Form | Description |
+|-----------|------------|-------------|
+| `ml train script.py` | `ml t script.py` | Run training |
+| `ml ui` | `ml u` | Launch UI |
+| `ml ship model` | `ml s model` | Deploy model |
+| `ml list runs` | `ml ls runs` | List items |
+
+## Global Options
+
+These options work with all commands:
+
+- `--help` - Show help message
+- `--version` - Show MLTrack version
+- `--verbose` - Enable verbose output
+- `--quiet` - Suppress output
+- `--config <path>` - Use custom config file
+
+## Examples
+
+### Complete Workflow
+
+```bash
+# Initialize project
+ml init --team ml-team
+
+# Train model
+ml train train.py --name "experiment-1"
+
+# View results
+ml ui
+
+# Save best model
+ml save best-model --run-id abc123
+
+# Deploy to production
+ml ship best-model --modal
+
+# Test deployment
+ml try best-model --data '{"input": [1, 2, 3]}'
+```
+
+### Batch Operations
+
+```bash
+# Run multiple experiments
+for lr in 0.001 0.01 0.1; do
+  ml train model.py --params "learning_rate=$lr"
+done
+
+# Deploy multiple models
+ml list models --filter "stage='Staging'" | \
+  xargs -I {} ml ship {} --modal
+```
+
+## Next Steps
+
+- Learn about [Deployment Options](/docs/guides/deployment)
+- Explore [LLM Tracking](/docs/guides/llm-tracking)
+- Set up [Team Collaboration](/docs/guides/teams)

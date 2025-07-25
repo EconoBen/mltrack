@@ -1,0 +1,68 @@
+# Introduction to MLTrack
+
+MLTrack is a powerful enhancement for MLflow that adds deployment capabilities, cost tracking, and a modern UI while maintaining 100% compatibility with your existing MLflow code.
+
+## Why MLTrack?
+
+If you're already using MLflow, you know it's great for experiment tracking. But when it comes to deployment and team collaboration, you might find yourself:
+
+- Writing custom deployment scripts
+- Building your own UI
+- Manually tracking costs
+- Struggling with multi-user access
+
+MLTrack solves these problems by providing:
+
+### 🚀 One-Command Deployment
+```bash
+ml ship model --modal
+```
+Deploy your models to production with a single command. No Dockerfiles, no complex configurations.
+
+### 💻 Modern, Beautiful UI
+- Real-time experiment tracking
+- Cost analytics dashboards
+- Model comparison tools
+- Team collaboration features
+
+### 💰 Built-in Cost Tracking
+- Automatic LLM token tracking
+- Compute cost monitoring
+- Budget alerts
+- Cost optimization insights
+
+### 👥 Team-First Design
+- User-specific API keys
+- Experiment filtering by user
+- Shared team experiments
+- Access control
+
+## How It Works
+
+MLTrack acts as a layer on top of MLflow:
+
+```python
+# Your existing MLflow code continues to work
+import mlflow
+mlflow.start_run()
+mlflow.log_metric("accuracy", 0.95)
+
+# Add MLTrack for superpowers
+from mltrack import ship
+ship("my-model", platform="modal")
+```
+
+## Key Concepts
+
+Before diving in, it's helpful to understand these key concepts:
+
+- **Experiments** - Groups of related model runs
+- **Runs** - Individual model training sessions
+- **Metrics** - Quantitative measurements (accuracy, loss, etc.)
+- **Parameters** - Model configuration (learning rate, batch size, etc.)
+- **Artifacts** - Files produced by runs (models, plots, etc.)
+- **Deployments** - Production-ready model endpoints
+
+## What's Next?
+
+Ready to get started? Head to our [Quick Start guide](/docs/getting-started/quick-start) to install MLTrack and track your first experiment in under 5 minutes.

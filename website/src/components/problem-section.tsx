@@ -39,10 +39,10 @@ export function ProblemSection() {
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             ML deployment is{" "}
-            <span className="text-red-500">unnecessarily hard</span>
+            <span className="bg-amber-500/10 px-3 py-1 rounded-lg text-amber-600 italic">unnecessarily hard</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            You trained a great model. Now you need a PhD in DevOps to share it with the world.
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            You've built a great model. Don't let deployment hold you back.
           </p>
         </motion.div>
         
@@ -54,15 +54,15 @@ export function ProblemSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="bg-red-500/5 border border-red-500/20 rounded-lg p-6 hover:border-red-500/40 transition-colors"
+              className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-6 hover:border-amber-500/40 transition-colors"
             >
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-red-500/10 rounded-lg">
-                  <problem.icon className="w-6 h-6 text-red-500" />
+                <div className="p-3 bg-amber-500/10 rounded-lg">
+                  <problem.icon className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2">{problem.title}</h3>
-                  <p className="text-gray-600">{problem.description}</p>
+                  <p className="text-slate-600">{problem.description}</p>
                 </div>
               </div>
             </motion.div>

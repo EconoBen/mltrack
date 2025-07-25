@@ -1,0 +1,300 @@
+import { Tabs, Callout } from 'nextra/components'
+
+# Installation Guide
+
+This guide covers all installation methods for MLTrack, system requirements, and troubleshooting common installation issues.
+
+## System Requirements
+
+- **Python**: 3.8, 3.9, 3.10, 3.11, or 3.12
+- **Operating System**: Linux, macOS, or Windows
+- **Memory**: 4GB RAM minimum (8GB recommended)
+- **Storage**: 500MB for MLTrack + space for experiments
+
+## Installation Methods
+
+### Using pip (Recommended)
+
+<Tabs items={['Standard', 'With extras', 'Development']}>
+  <Tabs.Tab>
+    ```bash
+    pip install ml-track
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Install with optional dependencies
+    pip install "ml-track[modal,aws]"
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Install from source for development
+    git clone https://github.com/EconoBen/mltrack.git
+    cd mltrack
+    pip install -e ".[dev]"
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+### Using uv
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package installer:
+
+```bash
+# Install uv first
+pip install uv
+
+# Install MLTrack
+uv add ml-track
+```
+
+<Callout type="info">
+  MLTrack works great with uv! You'll see a friendly notice acknowledging your choice of package manager.
+</Callout>
+
+### Using conda
+
+```bash
+# Coming soon
+conda install -c conda-forge mltrack
+```
+
+## Verify Installation
+
+After installation, verify MLTrack is working:
+
+```bash
+# Check version
+ml --version
+
+# Run doctor command
+ml doctor
+```
+
+Expected output:
+```
+MLTrack v0.1.0
+
+Checking MLTrack installation...
+✓ MLTrack CLI: Installed
+✓ Python version: 3.11.5 (compatible)
+✓ MLflow: 2.11.1 (compatible)
+✓ Dependencies: All satisfied
+✓ Configuration: Not initialized (run 'ml init')
+
+All checks passed! Run 'ml init' to set up your project.
+```
+
+## Optional Dependencies
+
+MLTrack has optional dependencies for specific features:
+
+### Deployment Platforms
+
+```bash
+# Modal deployment
+pip install "ml-track[modal]"
+
+# AWS deployment (coming soon)
+pip install "ml-track[aws]"
+
+# All deployment options
+pip install "ml-track[deploy]"
+```
+
+### LLM Providers
+
+```bash
+# OpenAI integration
+pip install openai
+
+# Anthropic integration
+pip install anthropic
+```
+
+### Development Tools
+
+```bash
+# Development dependencies
+pip install "ml-track[dev]"
+```
+
+## Environment Setup
+
+### Virtual Environment (Recommended)
+
+<Tabs items={['venv', 'conda', 'poetry']}>
+  <Tabs.Tab>
+    ```bash
+    # Create virtual environment
+    python -m venv mltrack-env
+    
+    # Activate (Linux/macOS)
+    source mltrack-env/bin/activate
+    
+    # Activate (Windows)
+    mltrack-env\Scripts\activate
+    
+    # Install MLTrack
+    pip install ml-track
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Create conda environment
+    conda create -n mltrack python=3.11
+    conda activate mltrack
+    
+    # Install MLTrack
+    pip install ml-track
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Initialize poetry project
+    poetry init
+    
+    # Add MLTrack
+    poetry add ml-track
+    
+    # Install
+    poetry install
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+### Environment Variables
+
+MLTrack uses these environment variables:
+
+```bash
+# MLflow tracking URI (optional)
+export MLFLOW_TRACKING_URI=http://localhost:5000
+
+# MLTrack API key (for team features)
+export MLTRACK_API_KEY=your-api-key
+
+# Default deployment platform
+export MLTRACK_DEPLOY_PLATFORM=modal
+```
+
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) for persistence.
+
+## Upgrading MLTrack
+
+### Upgrade to Latest Version
+
+```bash
+pip install --upgrade ml-track
+```
+
+### Upgrade to Specific Version
+
+```bash
+pip install ml-track==0.2.0
+```
+
+### Check for Updates
+
+```bash
+ml doctor --check-updates
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<details>
+<summary>ImportError: No module named 'mltrack'</summary>
+
+The package name is `ml-track` but imports as `mltrack`:
+
+```bash
+# Install
+pip install ml-track
+
+# Import
+from mltrack import track
+```
+</details>
+
+<details>
+<summary>Permission denied when installing</summary>
+
+Use `--user` flag or virtual environment:
+
+```bash
+# User installation
+pip install --user ml-track
+
+# Or use virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate
+pip install ml-track
+```
+</details>
+
+<details>
+<summary>Conflicting dependencies</summary>
+
+Create a fresh virtual environment:
+
+```bash
+# Remove old environment
+deactivate
+rm -rf venv/
+
+# Create new environment
+python -m venv venv
+source venv/bin/activate
+pip install ml-track
+```
+</details>
+
+### Platform-Specific Issues
+
+#### macOS
+- If using system Python, consider installing Python via [Homebrew](https://brew.sh/)
+- M1/M2 Macs: Some dependencies may need `--no-binary` flag
+
+#### Windows
+- Use PowerShell or WSL for better compatibility
+- Long path support may need to be enabled
+
+#### Linux
+- Some distributions need `python3-dev` package for C extensions
+- Ubuntu/Debian: `sudo apt-get install python3-dev`
+
+## Docker Installation
+
+For containerized environments:
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install MLTrack
+RUN pip install ml-track
+
+# Copy your code
+COPY . .
+
+# Run your training script
+CMD ["ml", "train", "train.py"]
+```
+
+## Next Steps
+
+After installation:
+
+1. [Initialize your project](/docs/getting-started/quick-start#step-2-initialize-your-project) with `ml init`
+2. [Track your first experiment](/docs/getting-started/quick-start#step-3-track-your-first-experiment)
+3. [Explore the CLI](/docs/guides/cli) commands
+
+## Getting Help
+
+- Run `ml doctor` for diagnostic information
+- Check our [FAQ](/docs/reference/faq)
+- Report issues on [GitHub](https://github.com/EconoBen/mltrack/issues)

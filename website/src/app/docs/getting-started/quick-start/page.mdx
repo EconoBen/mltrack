@@ -1,0 +1,181 @@
+import { Tabs, Callout } from 'nextra/components'
+
+# Quick Start
+
+Get up and running with MLTrack in 5 minutes. This guide will walk you through installation, tracking your first experiment, and deploying a model.
+
+## Prerequisites
+
+- Python 3.8 or higher
+- pip or uv package manager
+
+## Step 1: Install MLTrack
+
+<Tabs items={['pip', 'uv']}>
+  <Tabs.Tab>
+```bash
+pip install ml-track
+```
+  </Tabs.Tab>
+  <Tabs.Tab>
+```bash
+uv add ml-track
+```
+  </Tabs.Tab>
+</Tabs>
+
+## Step 2: Initialize Your Project
+
+Create a new directory for your project and initialize MLTrack:
+
+```bash
+mkdir my-ml-project
+cd my-ml-project
+ml init
+```
+
+This creates a `.mltrack.yml` configuration file with sensible defaults.
+
+## Step 3: Track Your First Experiment
+
+Create a file called `train.py`:
+
+```python
+from mltrack import track
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+
+@track
+def train_model(n_estimators=100, max_depth=10):
+    # Generate sample data
+    X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    
+    # Train model
+    model = RandomForestClassifier(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=42
+    )
+    model.fit(X_train, y_train)
+    
+    # Log metrics
+    accuracy = model.score(X_test, y_test)
+    return model, accuracy
+
+# Run training
+model, accuracy = train_model()
+print(f"Model accuracy: {accuracy:.3f}")
+```
+
+Run the training script:
+
+```bash
+ml train train.py
+```
+
+<Callout type="info">
+  MLTrack automatically detects your ML framework and logs relevant metrics!
+</Callout>
+
+## Step 4: View Results in the UI
+
+Launch the MLTrack UI to see your experiments:
+
+```bash
+ml ui
+```
+
+Open your browser to [http://localhost:3000](http://localhost:3000) to see:
+- Your experiment run
+- Logged parameters and metrics
+- Model artifacts
+- Real-time updates
+
+## Step 5: Save Your Model
+
+Save your trained model to the MLTrack registry:
+
+```bash
+ml save my-classifier --run-id <run-id-from-ui>
+```
+
+## Step 6: Deploy Your Model
+
+Deploy your model to Modal with a single command:
+
+```bash
+ml ship my-classifier --modal
+```
+
+<Callout type="success">
+  🎉 Congratulations! Your model is now deployed and accessible via API.
+</Callout>
+
+The deployment provides:
+- REST API endpoint
+- Automatic scaling
+- Request/response logging
+- Cost tracking
+
+## Step 7: Test Your Deployment
+
+Test your deployed model:
+
+```bash
+ml try my-classifier --data '[[1.0, 2.0, ..., 20.0]]'
+```
+
+## What's Next?
+
+Now that you have MLTrack running:
+
+- Learn about [MLflow Integration](/docs/getting-started/mlflow-integration)
+- Explore the [CLI Commands](/docs/guides/cli)
+- Set up [Team Collaboration](/docs/guides/teams)
+- Configure [LLM Tracking](/docs/guides/llm-tracking)
+
+## Quick Reference
+
+| Command | Description |
+|---------|-------------|
+| `ml init` | Initialize MLTrack project |
+| `ml train <script>` | Run training script with tracking |
+| `ml ui` | Launch the dashboard |
+| `ml save <name>` | Save model to registry |
+| `ml ship <name>` | Deploy model |
+| `ml try <name>` | Test deployment |
+
+## Troubleshooting
+
+<details>
+<summary>MLTrack command not found</summary>
+
+Make sure you've installed MLTrack with pip:
+```bash
+pip install ml-track
+```
+
+If using a virtual environment, ensure it's activated.
+</details>
+
+<details>
+<summary>Port 3000 already in use</summary>
+
+The UI runs on port 3000 by default. Use a different port:
+```bash
+ml ui --port 8080
+```
+</details>
+
+<details>
+<summary>Modal deployment requires authentication</summary>
+
+Set up your Modal token:
+```bash
+pip install modal
+modal token new
+```
+</details>

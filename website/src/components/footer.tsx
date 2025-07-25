@@ -8,7 +8,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center font-bold text-white">
+              <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center font-bold text-white">
                 M
               </div>
               <span className="font-semibold text-lg">MLTrack</span>
@@ -19,7 +19,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Product</h3>
+            <h3 className="font-semibold mb-4">Project</h3>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="#features" className="hover:text-white transition-colors">

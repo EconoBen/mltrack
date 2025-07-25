@@ -1,0 +1,170 @@
+/* MLTrack Documentation Custom Styles */
+
+/* Docs container specific styles */
+.docs-container {
+  /* Force light theme for docs */
+  background-color: #ffffff;
+  color: #111827;
+  min-height: 100vh;
+  
+  /* Custom colors */
+  --mltrack-teal: #0d9488;
+  --mltrack-teal-light: #14b8a6;
+  --mltrack-teal-dark: #0f766e;
+  --mltrack-amber: #f59e0b;
+  --mltrack-amber-light: #fbbf24;
+  --mltrack-amber-dark: #d97706;
+}
+
+/* Force light theme within docs */
+.docs-container,
+.docs-container * {
+  color-scheme: light;
+}
+
+/* Reset dark theme inheritance */
+.docs-container .nextra-body,
+.docs-container .nextra-content {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+/* Nextra overrides for light theme within docs */
+.docs-container .nextra-body {
+  background-color: #ffffff !important;
+}
+
+/* Navigation styling */
+.docs-container .nextra-nav-container {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+/* Sidebar styling */
+.docs-container .nextra-sidebar-container {
+  background-color: #fafafa !important;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* Link colors */
+.docs-container a {
+  color: var(--mltrack-teal) !important;
+}
+
+.docs-container a:hover {
+  color: var(--mltrack-teal-dark) !important;
+}
+
+/* Code blocks with teal accent */
+.docs-container pre {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Inline code */
+.docs-container code:not(pre code) {
+  background-color: #f3f4f6 !important;
+  color: var(--mltrack-teal-dark) !important;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(13, 148, 136, 0.2);
+  color: inherit;
+}
+
+/* Buttons */
+button, .nextra-button {
+  background-color: var(--mltrack-teal) !important;
+  color: white !important;
+}
+
+button:hover, .nextra-button:hover {
+  background-color: var(--mltrack-teal-dark) !important;
+}
+
+/* Warning/Info boxes with amber accent */
+.nextra-callout-warning {
+  border-left-color: var(--mltrack-amber) !important;
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.nextra-callout-info {
+  border-left-color: var(--mltrack-teal) !important;
+  background-color: rgba(13, 148, 136, 0.1) !important;
+}
+
+/* Table of contents */
+.nextra-toc {
+  background-color: #fafafa !important;
+  border-left: 2px solid #e5e7eb;
+}
+
+.dark .nextra-toc {
+  background-color: #1f2937 !important;
+  border-left: 2px solid #374151;
+}
+
+.nextra-toc-item.active {
+  color: var(--mltrack-teal) !important;
+}
+
+/* Search */
+.nextra-search {
+  background-color: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+}
+
+.dark .nextra-search {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+}
+
+/* Custom components */
+.feature-card {
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.code-example {
+  position: relative;
+  margin: 1.5rem 0;
+}
+
+.code-example::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--mltrack-teal) 0%, var(--mltrack-amber) 100%);
+  border-radius: 3px 3px 0 0;
+}
+
+/* Copy button */
+.nextra-copy-button {
+  background-color: var(--mltrack-teal) !important;
+}
+
+.nextra-copy-button:hover {
+  background-color: var(--mltrack-teal-dark) !important;
+}
+
+/* Footer */
+footer {
+  background-color: #fafafa !important;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark footer {
+  background-color: #1f2937 !important;
+  border-top: 1px solid #374151;
+}
