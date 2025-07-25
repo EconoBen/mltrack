@@ -1,0 +1,21 @@
+{
+  "index": {
+    "title": "Overview",
+    "display": "hidden"
+  },
+  "architecture": {
+    "title": "Architecture"
+  },
+  "tracking": {
+    "title": "Experiment Tracking"
+  },
+  "models": {
+    "title": "Model Management"
+  },
+  "deployment": {
+    "title": "Deployment"
+  },
+  "cost-tracking": {
+    "title": "Cost Tracking"
+  }
+}

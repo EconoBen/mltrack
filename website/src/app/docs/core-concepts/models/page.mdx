@@ -1,0 +1,306 @@
+# Model Management
+
+MLTrack simplifies model management with intuitive commands and a visual registry that makes finding, comparing, and deploying models effortless.
+
+## Model Lifecycle
+
+<div className="mt-8 space-y-1">
+  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+    <span className="font-medium">Development</span>
+    <span className="text-sm text-gray-500">→ Experimenting and iterating</span>
+  </div>
+  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+    <span className="font-medium">Staging</span>
+    <span className="text-sm text-gray-500">→ Testing and validation</span>
+  </div>
+  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+    <span className="font-medium">Production</span>
+    <span className="text-sm text-gray-500">→ Serving real traffic</span>
+  </div>
+  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+    <span className="font-medium">Archived</span>
+    <span className="text-sm text-gray-500">→ Retired but preserved</span>
+  </div>
+</div>
+
+## Saving Models
+
+MLTrack makes saving models intuitive and consistent:
+
+```python
+# Automatic model detection and saving
+ml.save_model(model, "my-classifier")
+
+# With metadata
+ml.save_model(
+    model, 
+    "customer-churn-predictor",
+    description="Random forest for churn prediction",
+    tags={"dataset": "customers_2024", "version": "1.0.0"}
+)
+
+# Framework-specific helpers
+ml.save_sklearn(model, "sklearn-model")
+ml.save_pytorch(model, "pytorch-model")
+ml.save_tensorflow(model, "tf-model")
+```
+
+### What Gets Saved
+
+When you save a model, MLTrack captures:
+- Model artifacts and weights
+- Training code and parameters
+- Dependencies and environment
+- Performance metrics
+- Input/output schemas
+- Custom preprocessing steps
+
+## Model Registry
+
+The MLTrack model registry provides a central hub for all your models:
+
+### Visual Registry Features
+- **Gallery view** - See models as cards with previews
+- **Comparison mode** - Compare models side-by-side
+- **Lineage tracking** - Understand model evolution
+- **Search & filter** - Find models instantly
+
+### CLI Commands
+
+```bash
+# List all models
+ml models list
+
+# Search models
+ml models search "churn"
+
+# Get model details
+ml models describe customer-churn-predictor
+
+# Compare models
+ml models compare model-v1 model-v2
+```
+
+## Model Versioning
+
+MLTrack supports semantic versioning for models:
+
+```python
+# Save with version
+ml.save_model(model, "predictor", version="1.0.0")
+
+# Auto-increment version
+ml.save_model(model, "predictor", auto_version=True)
+# Creates: predictor:1.0.1
+
+# Tag versions
+ml.tag_model("predictor:1.0.0", ["stable", "production"])
+```
+
+### Version Management
+
+```bash
+# List versions
+ml models versions predictor
+
+# Promote version
+ml models promote predictor:1.2.0 --to production
+
+# Rollback
+ml models rollback predictor --to 1.1.0
+```
+
+## Model Validation
+
+Ensure models meet quality standards before deployment:
+
+```python
+# Define validation criteria
+ml.validate_model(
+    model,
+    test_data=X_test,
+    thresholds={
+        "accuracy": 0.95,
+        "latency_ms": 100,
+        "memory_mb": 500
+    }
+)
+```
+
+### Automated Testing
+
+```yaml
+# .mltrack/model-tests.yaml
+validation:
+  performance:
+    accuracy: ">= 0.95"
+    f1_score: ">= 0.90"
+  
+  operational:
+    inference_time: "< 100ms"
+    memory_usage: "< 1GB"
+  
+  data_quality:
+    handles_missing: true
+    handles_outliers: true
+```
+
+## Model Comparison
+
+Compare models visually and programmatically:
+
+```python
+# Compare in code
+comparison = ml.compare_models(
+    ["model-v1", "model-v2", "model-v3"],
+    metrics=["accuracy", "f1", "latency"]
+)
+
+# Generate report
+ml.create_comparison_report(
+    comparison, 
+    output="model_comparison.html"
+)
+```
+
+### Visual Comparison
+
+The MLTrack UI provides:
+- Side-by-side metric charts
+- Performance spider plots
+- Cost-benefit analysis
+- A/B test simulators
+
+## Model Artifacts
+
+### Managing Artifacts
+
+```python
+# Attach additional artifacts
+ml.add_artifact(
+    "predictor",
+    "preprocessing.pkl",
+    artifact_type="preprocessor"
+)
+
+# Bundle related artifacts
+ml.create_model_bundle(
+    "full-pipeline",
+    models=["encoder", "predictor"],
+    artifacts=["scaler.pkl", "config.yaml"]
+)
+```
+
+### Artifact Storage
+
+<Alert type="info">
+MLTrack automatically optimizes artifact storage using deduplication and compression, typically reducing storage costs by 60-80%.
+</Alert>
+
+## Model Metadata
+
+Rich metadata makes models discoverable and understandable:
+
+```python
+# Add comprehensive metadata
+ml.update_model_metadata("predictor", {
+    "algorithm": "RandomForestClassifier",
+    "training_data": {
+        "source": "warehouse.customers",
+        "date_range": "2023-01-01 to 2024-01-01",
+        "row_count": 1000000
+    },
+    "features": {
+        "count": 47,
+        "importance": {...},
+        "engineering": "automated"
+    },
+    "performance": {
+        "test_accuracy": 0.956,
+        "production_accuracy": 0.951
+    },
+    "business_impact": {
+        "use_case": "Reduce customer churn",
+        "estimated_value": "$2.5M annually"
+    }
+})
+```
+
+## Model Governance
+
+### Access Control
+
+```bash
+# Set model permissions
+ml models permissions set predictor \
+  --read team \
+  --write ml-engineers \
+  --deploy ml-ops
+
+# Audit trail
+ml models audit predictor
+```
+
+### Compliance
+
+```python
+# Add compliance metadata
+ml.add_compliance_info("predictor", {
+    "gdpr_compliant": True,
+    "data_retention": "90 days",
+    "bias_tested": True,
+    "explainability": "SHAP values available"
+})
+```
+
+## Best Practices
+
+### 1. Use Semantic Versioning
+```
+1.0.0 - Major changes (breaking)
+1.1.0 - New features (backward compatible)
+1.1.1 - Bug fixes
+```
+
+### 2. Tag Strategically
+```python
+ml.tag_model("predictor", [
+    "production",      # Current status
+    "high-priority",   # Business importance
+    "gpu-required",    # Infrastructure needs
+    "team-ml"         # Ownership
+])
+```
+
+### 3. Document Everything
+```python
+ml.save_model(
+    model,
+    "predictor",
+    description="""
+    Customer churn prediction model using RF.
+    
+    Inputs: Customer features (47 dimensions)
+    Output: Churn probability [0-1]
+    
+    Performance: 95.6% accuracy on test set
+    Notes: Retrain monthly with new data
+    """
+)
+```
+
+### 4. Test Before Promoting
+Always validate models in staging before production.
+
+### 5. Monitor After Deployment
+Set up alerts for model performance degradation.
+
+## Next Steps
+
+- Learn about [Deployment](/docs/core-concepts/deployment) strategies
+- Explore [Cost Tracking](/docs/core-concepts/cost-tracking) for models
+- Try the [Model Management Guide](/docs/guides/model-registry)

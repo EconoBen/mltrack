@@ -1,0 +1,314 @@
+# Deployment
+
+MLTrack's killer feature is one-command deployment. Deploy your models to production without writing Dockerfiles, Kubernetes configs, or API code.
+
+## The Deployment Problem
+
+Traditional ML deployment is painful:
+1. Package dependencies correctly
+2. Write a Dockerfile
+3. Create API endpoints
+4. Handle authentication
+5. Set up monitoring
+6. Configure auto-scaling
+7. Manage costs
+
+**MLTrack handles all of this with one command.**
+
+## One-Command Deployment
+
+Deploy any MLflow model instantly:
+
+```bash
+# Deploy to Modal (serverless)
+ml ship model --modal
+
+# Deploy to AWS Lambda
+ml ship model --aws-lambda
+
+# Deploy as Docker container
+ml ship model --docker
+```
+
+That's it. Your model is live with a production-ready API.
+
+## How It Works
+
+<div className="space-y-6 mt-8">
+  <div className="flex gap-4">
+    <div className="flex-shrink-0 w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600 font-bold">1</div>
+    <div>
+      <h4 className="font-semibold mb-1">Model Detection</h4>
+      <p className="text-sm text-gray-600">MLTrack identifies your model from the MLflow registry and analyzes its requirements</p>
+    </div>
+  </div>
+  
+  <div className="flex gap-4">
+    <div className="flex-shrink-0 w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600 font-bold">2</div>
+    <div>
+      <h4 className="font-semibold mb-1">Dependency Resolution</h4>
+      <p className="text-sm text-gray-600">Automatically captures all dependencies including system libraries and Python packages</p>
+    </div>
+  </div>
+  
+  <div className="flex gap-4">
+    <div className="flex-shrink-0 w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600 font-bold">3</div>
+    <div>
+      <h4 className="font-semibold mb-1">Container Building</h4>
+      <p className="text-sm text-gray-600">Creates an optimized container with your model and all dependencies</p>
+    </div>
+  </div>
+  
+  <div className="flex gap-4">
+    <div className="flex-shrink-0 w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600 font-bold">4</div>
+    <div>
+      <h4 className="font-semibold mb-1">API Generation</h4>
+      <p className="text-sm text-gray-600">Generates production-ready REST endpoints with proper error handling</p>
+    </div>
+  </div>
+  
+  <div className="flex gap-4">
+    <div className="flex-shrink-0 w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600 font-bold">5</div>
+    <div>
+      <h4 className="font-semibold mb-1">Deployment</h4>
+      <p className="text-sm text-gray-600">Pushes to your chosen platform and returns the endpoint URL</p>
+    </div>
+  </div>
+</div>
+
+## Deployment Targets
+
+### Modal (Recommended)
+<Badge variant="primary">Serverless</Badge> <Badge variant="success">Auto-scaling</Badge> <Badge>Pay-per-use</Badge>
+
+```bash
+ml ship model --modal
+```
+
+**Perfect for:**
+- Sporadic inference requests
+- Auto-scaling workloads  
+- Cost-sensitive deployments
+- Quick prototypes
+
+**Features:**
+- Scales to zero when idle
+- Automatic GPU allocation
+- Built-in monitoring
+- No DevOps required
+
+### AWS Lambda
+<Badge variant="primary">Serverless</Badge> <Badge>AWS Native</Badge>
+
+```bash
+ml ship model --aws-lambda
+```
+
+**Perfect for:**
+- AWS-centric architectures
+- Event-driven inference
+- Lightweight models (<10GB)
+- Integration with AWS services
+
+**Features:**
+- Integrates with API Gateway
+- Triggers from S3, SQS, etc.
+- IAM authentication
+- CloudWatch monitoring
+
+### Docker
+<Badge>Self-hosted</Badge> <Badge>Full Control</Badge>
+
+```bash
+ml ship model --docker
+```
+
+**Perfect for:**
+- On-premise deployments
+- Custom infrastructure
+- Large models
+- Specialized hardware
+
+**Features:**
+- Standard container format
+- Works with any orchestrator
+- Full customization
+- Local testing
+
+### More Coming Soon
+- Google Cloud Run
+- Azure Functions
+- Kubernetes
+- Edge devices
+
+## Advanced Deployment
+
+### Custom Configuration
+```bash
+# Specify resources
+ml ship model --modal \
+  --gpu a100 \
+  --memory 32GB \
+  --min-replicas 2
+
+# Add environment variables
+ml ship model --aws-lambda \
+  --env API_KEY=$SECRET_KEY \
+  --env LOG_LEVEL=debug
+
+# Custom domain
+ml ship model --docker \
+  --domain api.mycompany.com \
+  --port 8080
+```
+
+### Deployment Profiles
+Save deployment configurations:
+
+```yaml
+# .mltrack/deploy-profiles.yaml
+production:
+  target: modal
+  gpu: a100
+  memory: 32GB
+  min_replicas: 3
+  max_replicas: 10
+  
+staging:
+  target: aws-lambda
+  memory: 4GB
+  timeout: 300
+```
+
+Deploy with profiles:
+```bash
+ml ship model --profile production
+```
+
+### Multi-Model Deployment
+Deploy multiple models together:
+
+```bash
+# Deploy an ensemble
+ml ship ensemble \
+  --models model1,model2,model3 \
+  --strategy voting
+
+# Deploy A/B test
+ml ship ab-test \
+  --model-a champion \
+  --model-b challenger \
+  --traffic-split 80/20
+```
+
+## API Features
+
+Every deployed model gets:
+
+### RESTful Endpoints
+```bash
+# Health check
+GET /health
+
+# Predictions
+POST /predict
+{
+  "instances": [[1, 2, 3], [4, 5, 6]]
+}
+
+# Batch predictions
+POST /predict/batch
+{
+  "instances": [...],
+  "async": true
+}
+
+# Model info
+GET /model/info
+```
+
+### Built-in Features
+- **Authentication** - API keys, OAuth, or custom
+- **Rate limiting** - Prevent abuse
+- **Request validation** - Type checking and schemas
+- **Error handling** - Graceful failures
+- **Monitoring** - Metrics and logging
+- **Documentation** - Auto-generated OpenAPI
+
+### Client Libraries
+```python
+# Python client auto-generated
+from mltrack import Client
+
+client = Client("https://api.modal.run/my-model")
+predictions = client.predict([[1, 2, 3]])
+```
+
+## Monitoring & Management
+
+### Real-time Monitoring
+```bash
+# View deployment status
+ml deployments list
+
+# Monitor specific deployment
+ml monitor my-model --modal
+
+# View logs
+ml logs my-model --tail
+```
+
+### Cost Tracking
+<Alert type="info">
+MLTrack automatically tracks deployment costs including compute, storage, and API calls.
+</Alert>
+
+```bash
+# View deployment costs
+ml costs deployment my-model
+
+# Set cost alerts
+ml alerts create \
+  --deployment my-model \
+  --threshold $100/day
+```
+
+### Version Management
+```bash
+# Deploy specific version
+ml ship model:v2 --modal
+
+# Rollback
+ml rollback my-model --to v1
+
+# Blue-green deployment
+ml ship model --modal \
+  --strategy blue-green \
+  --canary 10%
+```
+
+## Best Practices
+
+### 1. Start with Modal
+For most use cases, Modal provides the best balance of simplicity and power.
+
+### 2. Test Locally First
+```bash
+# Test deployment locally
+ml test model --local
+```
+
+### 3. Monitor Costs
+Set up cost alerts early to avoid surprises.
+
+### 4. Use Profiles
+Define deployment profiles for consistency across environments.
+
+### 5. Version Everything
+Tag models with semantic versions before deployment.
+
+## Next Steps
+
+- Try the [Deployment Quickstart](/docs/guides/deployment-basics)
+- Learn about [Model Management](/docs/core-concepts/models)
+- Explore [Cost Tracking](/docs/core-concepts/cost-tracking)

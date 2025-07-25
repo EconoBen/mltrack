@@ -1,11 +1,15 @@
-/* MLTrack Documentation Custom Styles */
+/* MLTrack Documentation Custom Styles - Sleek Light Mode */
+
+/* Import Inter font for clean typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* Root variables for consistent theming */
 :root {
-  /* MLTrack brand colors */
-  --mltrack-teal: #0d9488;
-  --mltrack-teal-light: #14b8a6;
-  --mltrack-teal-dark: #0f766e;
+  /* MLTrack brand colors - refined */
+  --mltrack-teal: #0891b2;
+  --mltrack-teal-light: #06b6d4;
+  --mltrack-teal-dark: #0e7490;
+  --mltrack-teal-vibrant: #00d4ff;
   --mltrack-amber: #f59e0b;
   --mltrack-amber-light: #fbbf24;
   --mltrack-amber-dark: #d97706;
@@ -13,17 +17,43 @@
   --mltrack-emerald-light: #34d399;
   --mltrack-emerald-dark: #059669;
   
+  /* Sophisticated grays */
+  --gray-50: #fafafa;
+  --gray-100: #f4f4f5;
+  --gray-200: #e4e4e7;
+  --gray-300: #d4d4d8;
+  --gray-400: #a1a1aa;
+  --gray-500: #71717a;
+  --gray-600: #52525b;
+  --gray-700: #3f3f46;
+  --gray-800: #27272a;
+  --gray-900: #18181b;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
   /* Nextra overrides */
-  --nextra-primary-hue: 180;
-  --nextra-primary-saturation: 75%;
+  --nextra-primary-hue: 195;
+  --nextra-primary-saturation: 85%;
+}
+
+/* Global font application */
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Docs container specific styles */
 .docs-container {
-  /* Force light theme for docs */
-  background-color: #ffffff;
-  color: #111827;
+  /* Clean light background */
+  background-color: #fcfcfc;
+  color: var(--gray-800);
   min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: -0.011em;
 }
 
 /* Force light theme within docs */
@@ -44,17 +74,31 @@
   background-color: #ffffff !important;
 }
 
-/* Navigation styling */
+/* Navigation styling - sleek glass effect */
 .docs-container .nextra-nav-container {
-  backdrop-filter: blur(8px);
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  backdrop-filter: blur(12px) saturate(150%);
+  background-color: rgba(252, 252, 252, 0.8) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.02);
+  transition: all 0.3s ease;
 }
 
-/* Sidebar styling */
+/* Sidebar styling - minimal and clean */
 .docs-container .nextra-sidebar-container {
-  background-color: #fafafa !important;
-  border-right: 1px solid #e5e7eb;
+  background-color: transparent !important;
+  border-right: none;
+  padding: 1.5rem 0;
+}
+
+/* Add subtle separator line */
+.docs-container .nextra-sidebar-container::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 2rem;
+  bottom: 2rem;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--gray-200), transparent);
 }
 
 /* Link colors */
@@ -66,19 +110,39 @@
   color: var(--mltrack-teal-dark) !important;
 }
 
-/* Code blocks with teal accent */
+/* Code blocks - sleek and modern */
 .docs-container pre {
-  background-color: #f9fafb !important;
-  border: 1px solid #e5e7eb !important;
+  background-color: var(--gray-50) !important;
+  border: none !important;
+  border-radius: 12px;
+  padding: 1.5rem !important;
+  margin: 2rem 0 !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Inline code */
+/* Add subtle gradient overlay to code blocks */
+.docs-container pre::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--mltrack-teal-light), var(--mltrack-amber-light));
+  opacity: 0.3;
+}
+
+/* Inline code - minimal style */
 .docs-container code:not(pre code) {
-  background-color: #f3f4f6 !important;
-  color: var(--mltrack-teal-dark) !important;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
+  background-color: rgba(8, 145, 178, 0.08) !important;
+  color: var(--gray-900) !important;
+  padding: 0.125rem 0.375rem;
+  border-radius: 6px;
   font-size: 0.875em;
+  font-weight: 500;
+  border: 1px solid rgba(8, 145, 178, 0.1);
 }
 
 /* Selection color */
@@ -87,40 +151,125 @@
   color: inherit;
 }
 
-/* Buttons */
+/* Buttons - modern flat style */
 button, .nextra-button {
-  background-color: var(--mltrack-teal) !important;
+  background-color: var(--gray-900) !important;
   color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 0.5rem 1.25rem !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 button:hover, .nextra-button:hover {
+  background-color: var(--gray-800) !important;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Primary action buttons */
+.nx-bg-primary-600, .nx-bg-primary-700 {
+  background-color: var(--mltrack-teal) !important;
+}
+
+.nx-bg-primary-600:hover, .nx-bg-primary-700:hover {
   background-color: var(--mltrack-teal-dark) !important;
 }
 
-/* Warning/Info boxes with amber accent */
+/* Callout boxes - modern card style */
+.nextra-callout {
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 1.25rem 1.5rem !important;
+  margin: 1.5rem 0 !important;
+  background-color: var(--gray-50) !important;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add accent line on left */
+.nextra-callout::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+/* Warning callout */
 .nextra-callout-warning {
-  border-left-color: var(--mltrack-amber) !important;
-  background-color: rgba(245, 158, 11, 0.1) !important;
+  background-color: rgba(245, 158, 11, 0.05) !important;
 }
 
+.nextra-callout-warning::before {
+  background: linear-gradient(to bottom, var(--mltrack-amber), var(--mltrack-amber-light));
+}
+
+/* Info callout */
 .nextra-callout-info {
-  border-left-color: var(--mltrack-teal) !important;
-  background-color: rgba(13, 148, 136, 0.1) !important;
+  background-color: rgba(8, 145, 178, 0.05) !important;
 }
 
-/* Table of contents */
+.nextra-callout-info::before {
+  background: linear-gradient(to bottom, var(--mltrack-teal), var(--mltrack-teal-light));
+}
+
+/* Error callout */
+.nextra-callout-error {
+  background-color: rgba(239, 68, 68, 0.05) !important;
+}
+
+.nextra-callout-error::before {
+  background: linear-gradient(to bottom, #ef4444, #f87171);
+}
+
+/* Table of contents - floating card style */
 .nextra-toc {
-  background-color: #fafafa !important;
-  border-left: 2px solid #e5e7eb;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 1rem !important;
 }
 
-.dark .nextra-toc {
-  background-color: #1f2937 !important;
-  border-left: 2px solid #374151;
+.nextra-toc-content {
+  background-color: var(--gray-50) !important;
+  border-radius: 12px;
+  padding: 1.25rem !important;
+  border: 1px solid var(--gray-100);
+}
+
+.nextra-toc-item {
+  color: var(--gray-500) !important;
+  font-size: 0.875rem;
+  line-height: 1.75;
+  transition: all 0.2s ease;
+}
+
+.nextra-toc-item:hover {
+  color: var(--gray-700) !important;
 }
 
 .nextra-toc-item.active {
   color: var(--mltrack-teal) !important;
+  font-weight: 500;
+  position: relative;
+}
+
+/* Add subtle indicator for active TOC item */
+.nextra-toc-item.active::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 16px;
+  background-color: var(--mltrack-teal);
+  border-radius: 1px;
 }
 
 /* Search */
@@ -159,13 +308,33 @@ button:hover, .nextra-button:hover {
   border-radius: 3px 3px 0 0;
 }
 
-/* Copy button */
+/* Copy button - subtle and modern */
 .nextra-copy-button {
-  background-color: var(--mltrack-teal) !important;
+  background-color: transparent !important;
+  color: var(--gray-400) !important;
+  border: 1px solid var(--gray-200) !important;
+  border-radius: 6px !important;
+  padding: 0.375rem !important;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+/* Show on hover */
+pre:hover .nextra-copy-button {
+  opacity: 1;
 }
 
 .nextra-copy-button:hover {
-  background-color: var(--mltrack-teal-dark) !important;
+  background-color: var(--gray-900) !important;
+  color: white !important;
+  border-color: var(--gray-900) !important;
+}
+
+/* Success state */
+.nextra-copy-button[data-copied="true"] {
+  background-color: var(--mltrack-teal) !important;
+  color: white !important;
+  border-color: var(--mltrack-teal) !important;
 }
 
 /* Footer */
@@ -185,28 +354,70 @@ footer {
   font-weight: 700;
 }
 
-/* Active sidebar item */
+/* Sidebar links - clean and minimal */
+.nextra-sidebar-container a {
+  position: relative;
+  color: var(--gray-600) !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 0.5rem 1rem !important;
+  margin: 0.125rem 0;
+  border-radius: 8px;
+}
+
+/* Active sidebar item - subtle left accent */
 .nextra-sidebar-container .active {
-  background-color: rgba(13, 148, 136, 0.1) !important;
-  color: var(--mltrack-teal) !important;
+  background-color: transparent !important;
+  color: var(--gray-900) !important;
   font-weight: 600;
 }
 
-/* Sidebar hover states */
-.nextra-sidebar-container a:hover {
-  background-color: rgba(13, 148, 136, 0.05) !important;
-  color: var(--mltrack-teal-dark) !important;
+.nextra-sidebar-container .active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background-color: var(--mltrack-teal);
+  border-radius: 0 3px 3px 0;
 }
 
-/* Page navigation (previous/next) */
+/* Sidebar hover states - subtle background */
+.nextra-sidebar-container a:hover:not(.active) {
+  background-color: var(--gray-50) !important;
+  color: var(--gray-800) !important;
+}
+
+/* Sidebar separators - more subtle */
+.nextra-sidebar-container .nx-separator {
+  margin: 1.5rem 0 !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gray-400) !important;
+}
+
+/* Page navigation (previous/next) - modern card style */
 .nextra-nav-link {
-  border: 1px solid #e5e7eb !important;
-  background-color: #fafafa !important;
+  border: none !important;
+  background-color: var(--gray-50) !important;
+  border-radius: 12px !important;
+  padding: 1.25rem 1.5rem !important;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
 }
 
 .nextra-nav-link:hover {
-  border-color: var(--mltrack-teal) !important;
-  background-color: rgba(13, 148, 136, 0.05) !important;
+  background-color: white !important;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.nextra-nav-link:hover .nx-text-primary-600 {
+  color: var(--mltrack-teal) !important;
 }
 
 /* Search modal */
@@ -233,19 +444,58 @@ footer {
   border-color: #e5e7eb !important;
 }
 
-/* Typography enhancements */
+/* Typography enhancements - clean and modern */
 .docs-container h1 {
-  background: linear-gradient(135deg, var(--mltrack-teal) 0%, var(--mltrack-teal-dark) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--gray-900);
+  font-size: 3rem;
   font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: 2rem;
 }
 
 .docs-container h2 {
-  color: #1f2937;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 0.5rem;
+  color: var(--gray-800);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.docs-container h3 {
+  color: var(--gray-800);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.docs-container h4 {
+  color: var(--gray-700);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Paragraph styling */
+.docs-container p {
+  color: var(--gray-600);
+  margin-bottom: 1.5rem;
+  line-height: 1.75;
+}
+
+/* Strong text */
+.docs-container strong {
+  color: var(--gray-800);
+  font-weight: 600;
 }
 
 /* Code syntax highlighting enhancement */
@@ -288,9 +538,78 @@ footer {
 
 /* Feedback widget */
 .nextra-feedback {
-  border-color: #e5e7eb !important;
+  border: none !important;
+  background-color: var(--gray-50) !important;
+  border-radius: 12px !important;
+  padding: 1rem !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.nextra-feedback button {
+  background-color: transparent !important;
+  color: var(--gray-600) !important;
+  transition: all 0.2s ease;
 }
 
 .nextra-feedback button:hover {
-  background-color: rgba(13, 148, 136, 0.1) !important;
+  background-color: white !important;
+  color: var(--mltrack-teal) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Lists - cleaner styling */
+.docs-container ul, .docs-container ol {
+  color: var(--gray-600);
+  margin-bottom: 1.5rem;
+}
+
+.docs-container li {
+  margin-bottom: 0.5rem;
+  line-height: 1.75;
+}
+
+/* Links in content - subtle underline on hover */
+.docs-container article a:not(.nx-text-primary-600) {
+  color: var(--mltrack-teal) !important;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.docs-container article a:not(.nx-text-primary-600):hover {
+  border-bottom-color: var(--mltrack-teal);
+}
+
+/* Blockquotes - modern style */
+.docs-container blockquote {
+  border-left: 3px solid var(--gray-200) !important;
+  background-color: var(--gray-50);
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 8px 8px 0;
+  color: var(--gray-600);
+  font-style: italic;
+}
+
+/* Horizontal rule - subtle */
+.docs-container hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gray-200), transparent);
+  margin: 3rem 0;
+}
+
+/* Add smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Content area max width for better readability */
+.docs-container .nx-max-w-90rem {
+  max-width: 48rem !important;
+}
+
+/* Main content padding adjustments */
+.docs-container main {
+  padding-top: 2rem !important;
 }

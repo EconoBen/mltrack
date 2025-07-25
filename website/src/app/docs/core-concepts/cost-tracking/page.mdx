@@ -1,0 +1,326 @@
+# Cost Tracking
+
+MLTrack provides comprehensive cost tracking across your entire ML pipeline - from experimentation to production deployment. Never be surprised by a cloud bill again.
+
+## Why Cost Tracking Matters
+
+<Alert type="warning">
+The average ML team wastes 30-40% of their compute budget on forgotten experiments, idle deployments, and inefficient resource allocation.
+</Alert>
+
+MLTrack helps you:
+- **Understand** where money is being spent
+- **Optimize** resource allocation
+- **Predict** future costs
+- **Alert** on budget overruns
+- **Report** costs by project, team, or model
+
+## What Gets Tracked
+
+### Training Costs
+Every experiment automatically tracks:
+- Compute time (CPU/GPU hours)
+- Memory usage
+- Storage (datasets, checkpoints)
+- Network transfer
+- Spot vs on-demand pricing
+
+### Deployment Costs  
+Production deployments track:
+- API calls and latency
+- Compute resources
+- Storage for models
+- Bandwidth usage
+- Auto-scaling events
+
+### Team Costs
+Aggregate costs by:
+- Individual users
+- Teams or projects
+- Models or experiments
+- Time periods
+
+## Automatic Cost Tracking
+
+Cost tracking happens automatically - no code changes required:
+
+```python
+# Just run your code normally
+model = train_model(data)
+
+# Costs are tracked automatically!
+# View in UI or via CLI:
+# ml costs run <run-id>
+```
+
+### Real-time Cost Display
+
+During training, see live cost accumulation:
+
+```
+Training model...
+Epoch 1/10 [=====>    ] 50% | Cost: $0.42 | ETA: $0.84
+GPU: NVIDIA A100 | $2.10/hour | 0.2 hours used
+```
+
+## Cost Configuration
+
+Configure cost tracking in `.mltrack/config.yaml`:
+
+```yaml
+costs:
+  # Cloud provider rates
+  compute:
+    cpu_hour: 0.10
+    gpu_hour:
+      a100: 2.10
+      v100: 0.90
+      t4: 0.35
+  
+  # Storage costs
+  storage:
+    s3_gb_month: 0.023
+    ebs_gb_month: 0.10
+  
+  # Custom markups
+  markup: 1.2  # 20% overhead
+  
+  # Alerts
+  alerts:
+    daily_threshold: 100
+    weekly_threshold: 500
+```
+
+## Cost Analytics
+
+### CLI Commands
+
+```bash
+# View costs for current month
+ml costs summary
+
+# Detailed breakdown
+ml costs breakdown --by project
+
+# Cost trends
+ml costs trend --days 30
+
+# Export for finance
+ml costs export --format csv --month 2024-01
+```
+
+### Cost Reports
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+  <div className="bg-gray-50 p-6 rounded-lg">
+    <h4 className="font-semibold mb-3">Daily Report</h4>
+    <pre className="text-sm">
+    Today's Costs: $127.43
+    ├── Training: $89.20
+    ├── Deployment: $31.15  
+    └── Storage: $7.08
+    
+    Top Expensive Runs:
+    1. bert-finetune: $45.30
+    2. image-gan: $23.15
+    3. prophet-forecast: $12.75
+    </pre>
+  </div>
+  
+  <div className="bg-gray-50 p-6 rounded-lg">
+    <h4 className="font-semibold mb-3">Monthly Summary</h4>
+    <pre className="text-sm">
+    October 2024: $3,847.92
+    
+    By Category:
+    • Experiments: 68% ($2,616.59)
+    • Production: 25% ($961.98)
+    • Storage: 7% ($269.35)
+    
+    Trend: ↑ 12% from last month
+    </pre>
+  </div>
+</div>
+
+## Cost Optimization
+
+MLTrack provides intelligent recommendations to reduce costs:
+
+### Automatic Optimizations
+
+<Badge variant="success">Auto-enabled</Badge>
+
+- **Spot instances** for fault-tolerant training
+- **Auto-shutdown** for idle resources
+- **Efficient checkpointing** to reduce storage
+- **Smart caching** of datasets
+- **Compression** of artifacts
+
+### Cost Recommendations
+
+```bash
+# Get optimization suggestions
+ml costs optimize
+
+# Example output:
+💰 Potential savings: $492/month
+
+Recommendations:
+1. Switch bert-training to spot instances (save $210/mo)
+2. Reduce checkpoint frequency for stable models (save $67/mo)
+3. Archive 3 unused deployments (save $180/mo)
+4. Compress image datasets with WebP (save $35/mo)
+```
+
+### Resource Right-sizing
+
+```python
+# MLTrack suggests optimal resources
+ml.suggest_resources(
+    model_type="transformer",
+    dataset_size="10GB",
+    target_time="2 hours"
+)
+# Suggests: p3.2xlarge (saves 40% vs p3.8xlarge)
+```
+
+## Budget Management
+
+### Setting Budgets
+
+```bash
+# Set team budget
+ml budget set team-ml --monthly 5000
+
+# Set per-project budgets
+ml budget set project:churn-prediction --daily 100
+
+# Set user budgets
+ml budget set user:sarah --weekly 500
+```
+
+### Budget Alerts
+
+```python
+# Configure alerts
+ml.configure_alerts({
+    "email": "ml-team@company.com",
+    "slack": "#ml-costs",
+    "thresholds": {
+        "80%": "warning",
+        "90%": "alert", 
+        "100%": "critical"
+    }
+})
+```
+
+### Budget Enforcement
+
+<Alert type="info">
+MLTrack can automatically pause expensive operations when budgets are exceeded, preventing cost overruns.
+</Alert>
+
+```yaml
+# .mltrack/config.yaml
+budget:
+  enforcement: strict
+  actions:
+    warning: notify
+    alert: require_approval
+    critical: auto_pause
+```
+
+## Cost Allocation
+
+### Tagging for Cost Centers
+
+```python
+# Tag runs with cost centers
+ml.set_tags({
+    "cost_center": "research",
+    "project": "nlp-2024", 
+    "team": "ml-core"
+})
+```
+
+### Chargeback Reports
+
+```bash
+# Generate chargeback report
+ml costs chargeback --month 2024-01
+
+# Output:
+Cost Center Chargeback - January 2024
+=====================================
+Research Dept:        $2,341.87
+  - nlp-2024:          $1,203.45
+  - vision-poc:          $892.33
+  - misc:                $246.09
+
+Product Dept:         $1,506.05
+  - recommender:         $823.17
+  - search-ranking:      $682.88
+```
+
+## Integration with Cloud Providers
+
+MLTrack integrates with cloud billing APIs for accurate costs:
+
+### AWS Integration
+```bash
+# Connect AWS billing
+ml costs connect aws \
+  --role arn:aws:iam::123:role/mltrack
+
+# Sync actual costs
+ml costs sync aws
+```
+
+### GCP Integration
+```bash
+# Connect GCP billing  
+ml costs connect gcp \
+  --project my-project \
+  --credentials key.json
+```
+
+### Azure Integration
+```bash
+# Connect Azure billing
+ml costs connect azure \
+  --subscription-id xxx \
+  --tenant-id yyy
+```
+
+## Best Practices
+
+### 1. Tag Everything
+Consistent tagging enables accurate cost allocation.
+
+### 2. Set Budgets Early
+Configure budgets before costs spiral out of control.
+
+### 3. Review Weekly
+Make cost review part of your team routine.
+
+### 4. Optimize Continuously
+Use MLTrack's recommendations to reduce waste.
+
+### 5. Educate the Team
+Share cost data to build awareness.
+
+## Cost Dashboard
+
+The MLTrack UI provides rich cost visualizations:
+
+- **Real-time meters** showing current spend rate
+- **Burn charts** tracking budget consumption
+- **Heat maps** identifying expensive operations
+- **Forecasting** predicting month-end costs
+- **Leaderboards** for cost-conscious teams
+
+## Next Steps
+
+- Set up [Budget Alerts](/docs/guides/monitoring#cost-alerts)
+- Learn about [Resource Optimization](/docs/advanced/optimization)
+- Configure [Cloud Provider Integration](/docs/reference/configuration#cloud-billing)
