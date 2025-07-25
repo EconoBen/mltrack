@@ -1,19 +1,29 @@
 /* MLTrack Documentation Custom Styles */
 
-/* Docs container specific styles */
-.docs-container {
-  /* Force light theme for docs */
-  background-color: #ffffff;
-  color: #111827;
-  min-height: 100vh;
-  
-  /* Custom colors */
+/* Root variables for consistent theming */
+:root {
+  /* MLTrack brand colors */
   --mltrack-teal: #0d9488;
   --mltrack-teal-light: #14b8a6;
   --mltrack-teal-dark: #0f766e;
   --mltrack-amber: #f59e0b;
   --mltrack-amber-light: #fbbf24;
   --mltrack-amber-dark: #d97706;
+  --mltrack-emerald: #10b981;
+  --mltrack-emerald-light: #34d399;
+  --mltrack-emerald-dark: #059669;
+  
+  /* Nextra overrides */
+  --nextra-primary-hue: 180;
+  --nextra-primary-saturation: 75%;
+}
+
+/* Docs container specific styles */
+.docs-container {
+  /* Force light theme for docs */
+  background-color: #ffffff;
+  color: #111827;
+  min-height: 100vh;
 }
 
 /* Force light theme within docs */
@@ -167,4 +177,120 @@ footer {
 .dark footer {
   background-color: #1f2937 !important;
   border-top: 1px solid #374151;
+}
+
+/* Nextra v4 specific overrides */
+/* Navbar logo styling */
+.docs-container nav .flex.items-center.gap-2 {
+  font-weight: 700;
+}
+
+/* Active sidebar item */
+.nextra-sidebar-container .active {
+  background-color: rgba(13, 148, 136, 0.1) !important;
+  color: var(--mltrack-teal) !important;
+  font-weight: 600;
+}
+
+/* Sidebar hover states */
+.nextra-sidebar-container a:hover {
+  background-color: rgba(13, 148, 136, 0.05) !important;
+  color: var(--mltrack-teal-dark) !important;
+}
+
+/* Page navigation (previous/next) */
+.nextra-nav-link {
+  border: 1px solid #e5e7eb !important;
+  background-color: #fafafa !important;
+}
+
+.nextra-nav-link:hover {
+  border-color: var(--mltrack-teal) !important;
+  background-color: rgba(13, 148, 136, 0.05) !important;
+}
+
+/* Search modal */
+.nextra-search-results {
+  border-color: #e5e7eb !important;
+}
+
+.nextra-search-result.active {
+  background-color: rgba(13, 148, 136, 0.1) !important;
+}
+
+/* Breadcrumbs */
+.nextra-breadcrumb {
+  color: #6b7280 !important;
+}
+
+.nextra-breadcrumb-separator {
+  color: #d1d5db !important;
+}
+
+/* Mobile menu */
+.nextra-menu-mobile {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+/* Typography enhancements */
+.docs-container h1 {
+  background: linear-gradient(135deg, var(--mltrack-teal) 0%, var(--mltrack-teal-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+.docs-container h2 {
+  color: #1f2937;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+/* Code syntax highlighting enhancement */
+.docs-container pre code {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+/* Custom scrollbar for docs */
+.docs-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.docs-container::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.docs-container::-webkit-scrollbar-thumb {
+  background: var(--mltrack-teal);
+  border-radius: 4px;
+}
+
+.docs-container::-webkit-scrollbar-thumb:hover {
+  background: var(--mltrack-teal-dark);
+}
+
+/* Banner styling */
+.nextra-banner {
+  background: linear-gradient(90deg, var(--mltrack-teal) 0%, var(--mltrack-amber) 100%);
+  color: white !important;
+}
+
+.nextra-banner a {
+  color: white !important;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Feedback widget */
+.nextra-feedback {
+  border-color: #e5e7eb !important;
+}
+
+.nextra-feedback button:hover {
+  background-color: rgba(13, 148, 136, 0.1) !important;
 }

@@ -1,6 +1,24 @@
 {
-  "index": "Introduction",
-  "quick-start": "Quick Start",
-  "installation": "Installation",
-  "mlflow-integration": "MLflow Integration"
+  "index": {
+    "title": "Introduction",
+    "display": "hidden"
+  },
+  "quick-start": {
+    "title": "Quick Start"
+  },
+  "installation": {
+    "title": "Installation"
+  },
+  "first-experiment": {
+    "title": "Your First Experiment"
+  },
+  "mlflow-integration": {
+    "title": "MLflow Integration"
+  },
+  "configuration": {
+    "title": "Configuration"
+  },
+  "next-steps": {
+    "title": "Next Steps"
+  }
 }

@@ -5,12 +5,54 @@
       "layout": "raw"
     }
   },
-  "getting-started": "Getting Started",
-  "core-concepts": "Core Concepts", 
-  "guides": "User Guides",
-  "cli": "CLI Reference",
-  "api": "API Reference",
-  "examples": "Examples",
-  "advanced": "Advanced Topics",
-  "reference": "Reference"
+  "getting-started": {
+    "title": "Getting Started",
+    "type": "page"
+  },
+  "core-concepts": {
+    "title": "Core Concepts",
+    "type": "page"
+  },
+  "guides": {
+    "title": "User Guides",
+    "type": "page"
+  },
+  "cli": {
+    "title": "CLI Reference",
+    "type": "page"
+  },
+  "api": {
+    "title": "API Reference",
+    "type": "page"
+  },
+  "deployment": {
+    "title": "Deployment",
+    "type": "page"
+  },
+  "examples": {
+    "title": "Examples",
+    "type": "page"
+  },
+  "advanced": {
+    "title": "Advanced Topics",
+    "type": "page"
+  },
+  "reference": {
+    "title": "Reference",
+    "type": "page"
+  },
+  "-- Divider": {
+    "type": "separator",
+    "title": "Resources"
+  },
+  "github": {
+    "title": "GitHub →",
+    "href": "https://github.com/EconoBen/mltrack",
+    "newWindow": true
+  },
+  "mlflow": {
+    "title": "MLflow Docs →",
+    "href": "https://mlflow.org/docs/latest/",
+    "newWindow": true
+  }
 }

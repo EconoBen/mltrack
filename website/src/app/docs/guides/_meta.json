@@ -1,8 +1,51 @@
 {
-  "index": "Overview",
-  "basic-usage": "Basic Usage",
-  "cli": "Command Line Interface",
-  "deployment": "Deployment",
-  "llm-tracking": "LLM Tracking",
-  "teams": "Team Collaboration"
+  "index": {
+    "title": "Overview",
+    "display": "hidden"
+  },
+  "-- experiments": {
+    "type": "separator",
+    "title": "Experiments"
+  },
+  "tracking-experiments": {
+    "title": "Tracking Experiments"
+  },
+  "comparing-runs": {
+    "title": "Comparing Runs"
+  },
+  "model-registry": {
+    "title": "Model Registry"
+  },
+  "-- deployment": {
+    "type": "separator",
+    "title": "Deployment"
+  },
+  "deployment-basics": {
+    "title": "Deployment Basics"
+  },
+  "modal-deployment": {
+    "title": "Deploy to Modal"
+  },
+  "aws-deployment": {
+    "title": "Deploy to AWS"
+  },
+  "docker-deployment": {
+    "title": "Docker Deployment"
+  },
+  "-- advanced": {
+    "type": "separator",
+    "title": "Advanced"
+  },
+  "llm-tracking": {
+    "title": "LLM Tracking"
+  },
+  "teams": {
+    "title": "Team Collaboration"
+  },
+  "cicd": {
+    "title": "CI/CD Integration"
+  },
+  "monitoring": {
+    "title": "Monitoring"
+  }
 }

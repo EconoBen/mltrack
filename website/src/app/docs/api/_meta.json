@@ -1,0 +1,41 @@
+{
+  "index": {
+    "title": "Overview",
+    "display": "hidden"
+  },
+  "-- python": {
+    "type": "separator",
+    "title": "Python API"
+  },
+  "client": {
+    "title": "MLTrack Client"
+  },
+  "tracking": {
+    "title": "Tracking API"
+  },
+  "models": {
+    "title": "Model Management"
+  },
+  "deployment": {
+    "title": "Deployment API"
+  },
+  "-- rest": {
+    "type": "separator",
+    "title": "REST API"
+  },
+  "authentication": {
+    "title": "Authentication"
+  },
+  "experiments": {
+    "title": "Experiments"
+  },
+  "runs": {
+    "title": "Runs"
+  },
+  "artifacts": {
+    "title": "Artifacts"
+  },
+  "webhooks": {
+    "title": "Webhooks"
+  }
+}

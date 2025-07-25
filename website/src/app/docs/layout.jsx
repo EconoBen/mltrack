@@ -59,9 +59,18 @@ export default async function DocsLayout({ children }) {
         toc={{
           backToTop: 'Back to top',
           title: 'On This Page',
-          float: true
+          float: true,
+          extraContent: null
         }}
-        navigation={true}
+        navigation={{
+          prev: true,
+          next: true
+        }}
+        sidebar={{
+          defaultMenuCollapseLevel: 1,
+          toggleButton: true,
+          autoCollapse: false
+        }}
       >
         {children}
       </Layout>

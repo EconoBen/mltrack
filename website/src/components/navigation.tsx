@@ -39,9 +39,9 @@ export function Navigation() {
             <Link href="#features" className="text-white/80 hover:text-white transition-colors">
               Features
             </Link>
-            <a href="https://github.com/EconoBen/mltrack/wiki" className="text-white/80 hover:text-white transition-colors">
+            <Link href="/docs" className="text-white/80 hover:text-white transition-colors">
               Docs
-            </a>
+            </Link>
           </div>
           
           <div className="hidden md:flex items-center gap-4">

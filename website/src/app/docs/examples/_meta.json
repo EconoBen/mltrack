@@ -1,0 +1,54 @@
+{
+  "index": {
+    "title": "Overview",
+    "display": "hidden"
+  },
+  "-- quickstart": {
+    "type": "separator",
+    "title": "Quick Examples"
+  },
+  "basic-tracking": {
+    "title": "Basic Experiment Tracking"
+  },
+  "model-training": {
+    "title": "Model Training"
+  },
+  "hyperparameter-tuning": {
+    "title": "Hyperparameter Tuning"
+  },
+  "-- frameworks": {
+    "type": "separator",
+    "title": "Framework Examples"
+  },
+  "scikit-learn": {
+    "title": "Scikit-learn"
+  },
+  "tensorflow": {
+    "title": "TensorFlow"
+  },
+  "pytorch": {
+    "title": "PyTorch"
+  },
+  "xgboost": {
+    "title": "XGBoost"
+  },
+  "huggingface": {
+    "title": "Hugging Face"
+  },
+  "-- usecases": {
+    "type": "separator",
+    "title": "Use Cases"
+  },
+  "computer-vision": {
+    "title": "Computer Vision"
+  },
+  "nlp": {
+    "title": "Natural Language Processing"
+  },
+  "time-series": {
+    "title": "Time Series"
+  },
+  "recommendation": {
+    "title": "Recommendation Systems"
+  }
+}

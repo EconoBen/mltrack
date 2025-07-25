@@ -1,0 +1,27 @@
+{
+  "index": {
+    "title": "Overview",
+    "display": "hidden"
+  },
+  "configuration": {
+    "title": "Configuration"
+  },
+  "environment-variables": {
+    "title": "Environment Variables"
+  },
+  "troubleshooting": {
+    "title": "Troubleshooting"
+  },
+  "faq": {
+    "title": "FAQ"
+  },
+  "glossary": {
+    "title": "Glossary"
+  },
+  "changelog": {
+    "title": "Changelog"
+  },
+  "migration": {
+    "title": "Migration Guide"
+  }
+}
