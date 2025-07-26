@@ -259,14 +259,14 @@ ml.add_compliance_info("predictor", {
 
 ## Best Practices
 
-### 1. Use Semantic Versioning
+### Use Semantic Versioning
 ```
 1.0.0 - Major changes (breaking)
 1.1.0 - New features (backward compatible)
 1.1.1 - Bug fixes
 ```
 
-### 2. Tag Strategically
+### Tag Strategically
 ```python
 ml.tag_model("predictor", [
     "production",      # Current status
@@ -276,7 +276,7 @@ ml.tag_model("predictor", [
 ])
 ```
 
-### 3. Document Everything
+### Document Everything
 ```python
 ml.save_model(
     model,
@@ -293,10 +293,10 @@ ml.save_model(
 )
 ```
 
-### 4. Test Before Promoting
+### Test Before Promoting
 Always validate models in staging before production.
 
-### 5. Monitor After Deployment
+### Monitor After Deployment
 Set up alerts for model performance degradation.
 
 ## Next Steps
