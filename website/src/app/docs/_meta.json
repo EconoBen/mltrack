@@ -45,6 +45,10 @@
     "type": "separator",
     "title": "Resources"
   },
+  "design-system": {
+    "title": "Design System",
+    "type": "page"
+  },
   "github": {
     "title": "GitHub →",
     "href": "https://github.com/EconoBen/mltrack",

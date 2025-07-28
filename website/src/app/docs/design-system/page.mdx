@@ -1,0 +1,311 @@
+# Design System
+
+The MLTrack documentation design system provides a consistent, professional, and accessible foundation for all documentation pages.
+
+## Color Palette
+
+<div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-8">
+  <div className="space-y-2">
+    <div className="h-24 rounded-lg shadow-md" style={{backgroundColor: 'var(--color-primary-500)'}}></div>
+    <p className="text-sm font-medium">Primary</p>
+    <code className="text-xs">--color-primary-500</code>
+  </div>
+  <div className="space-y-2">
+    <div className="h-24 rounded-lg shadow-md" style={{backgroundColor: 'var(--color-secondary-500)'}}></div>
+    <p className="text-sm font-medium">Secondary</p>
+    <code className="text-xs">--color-secondary-500</code>
+  </div>
+  <div className="space-y-2">
+    <div className="h-24 rounded-lg shadow-md" style={{backgroundColor: 'var(--color-accent-500)'}}></div>
+    <p className="text-sm font-medium">Accent</p>
+    <code className="text-xs">--color-accent-500</code>
+  </div>
+  <div className="space-y-2">
+    <div className="h-24 rounded-lg shadow-md border" style={{backgroundColor: 'var(--color-neutral-100)'}}></div>
+    <p className="text-sm font-medium">Neutral</p>
+    <code className="text-xs">--color-neutral-100</code>
+  </div>
+</div>
+
+## Typography
+
+### Headings
+
+<div className="space-y-4 my-8">
+  <h1 className="h1">Heading 1 - Page Title</h1>
+  <h2 className="h2">Heading 2 - Section Title</h2>
+  <h3 className="h3">Heading 3 - Subsection</h3>
+  <h4 className="h4">Heading 4 - Minor Heading</h4>
+  <h5 className="h5">Heading 5 - Small Heading</h5>
+  <h6 className="h6">Heading 6 - Label</h6>
+</div>
+
+### Body Text
+
+<div className="space-y-4 my-8">
+  <p className="lead">
+    This is lead text. It's larger and used for introductory paragraphs or important callouts.
+  </p>
+  <p>
+    This is regular body text. It uses the Inter font family with a comfortable reading size and line height. The maximum width is constrained to 65 characters for optimal readability.
+  </p>
+  <p className="small">
+    This is small text, useful for captions, footnotes, or secondary information.
+  </p>
+  <p className="micro uppercase tracking-wide text-muted">
+    This is micro text with uppercase styling
+  </p>
+</div>
+
+## Buttons
+
+<div className="flex flex-wrap gap-4 my-8">
+  <button className="btn btn-md btn-primary">Primary Button</button>
+  <button className="btn btn-md btn-secondary">Secondary Button</button>
+  <button className="btn btn-md btn-outline">Outline Button</button>
+  <button className="btn btn-md btn-ghost">Ghost Button</button>
+</div>
+
+### Button Sizes
+
+<div className="flex flex-wrap items-center gap-4 my-8">
+  <button className="btn btn-sm btn-primary">Small</button>
+  <button className="btn btn-md btn-primary">Medium</button>
+  <button className="btn btn-lg btn-primary">Large</button>
+</div>
+
+## Cards
+
+<div className="grid md:grid-cols-2 gap-6 my-8">
+  <div className="card">
+    <div className="card-header">
+      <h3 className="card-title">Standard Card</h3>
+      <p className="card-description">A basic card with header and content</p>
+    </div>
+    <p>Card content goes here. Cards are great for grouping related information.</p>
+  </div>
+  
+  <div className="card card-glass">
+    <div className="card-header">
+      <h3 className="card-title">Glass Card</h3>
+      <p className="card-description">Card with glass morphism effect</p>
+    </div>
+    <p>This card has a translucent background with backdrop blur.</p>
+  </div>
+</div>
+
+## Badges
+
+<div className="flex flex-wrap gap-2 my-8">
+  <span className="badge badge-primary">Primary</span>
+  <span className="badge badge-secondary">Secondary</span>
+  <span className="badge badge-success">Success</span>
+  <span className="badge badge-warning">Warning</span>
+  <span className="badge badge-error">Error</span>
+</div>
+
+## Alerts
+
+<div className="space-y-4 my-8">
+  <div className="alert alert-info">
+    <div className="alert-content">
+      <div className="alert-title">Information</div>
+      <div className="alert-description">This is an informational alert to provide helpful context.</div>
+    </div>
+  </div>
+  
+  <div className="alert alert-success">
+    <div className="alert-content">
+      <div className="alert-title">Success</div>
+      <div className="alert-description">Great! Your operation completed successfully.</div>
+    </div>
+  </div>
+  
+  <div className="alert alert-warning">
+    <div className="alert-content">
+      <div className="alert-title">Warning</div>
+      <div className="alert-description">Please be aware of this important information.</div>
+    </div>
+  </div>
+  
+  <div className="alert alert-error">
+    <div className="alert-content">
+      <div className="alert-title">Error</div>
+      <div className="alert-description">Something went wrong. Please try again.</div>
+    </div>
+  </div>
+</div>
+
+## Code Blocks
+
+<div className="my-8">
+  <div className="code-block">
+    <div className="code-block-header">
+      <span className="code-block-title">example.py</span>
+      <button className="code-block-copy">Copy</button>
+    </div>
+    <div className="code-block-content">
+      <pre><code>{`import mltrack
+
+# Initialize MLTrack
+mltrack.init(project="my-project")
+
+# Start tracking
+with mltrack.start_run():
+    mltrack.log_param("learning_rate", 0.01)
+    mltrack.log_metric("accuracy", 0.95)`}</code></pre>
+    </div>
+  </div>
+</div>
+
+## Feature Cards
+
+<div className="grid md:grid-cols-3 gap-6 my-8">
+  <div className="feature-card">
+    <div className="feature-icon">🚀</div>
+    <h3 className="feature-title">Fast Deployment</h3>
+    <p className="feature-description">Deploy models with a single command using Modal, AWS, or Docker.</p>
+  </div>
+  
+  <div className="feature-card">
+    <div className="feature-icon">💰</div>
+    <h3 className="feature-title">Cost Tracking</h3>
+    <p className="feature-description">Monitor training costs automatically across all cloud providers.</p>
+  </div>
+  
+  <div className="feature-card">
+    <div className="feature-icon">🛡️</div>
+    <h3 className="feature-title">Enterprise Ready</h3>
+    <p className="feature-description">Secure, scalable, and ready for production workloads.</p>
+  </div>
+</div>
+
+## Quick Links
+
+<div className="space-y-3 my-8">
+  <a href="#" className="quick-link">
+    <div className="quick-link-icon">📚</div>
+    <div className="quick-link-content">
+      <div className="quick-link-title">Getting Started Guide</div>
+      <div className="quick-link-description">Learn the basics of MLTrack in 5 minutes</div>
+    </div>
+    <div className="quick-link-arrow">→</div>
+  </a>
+  
+  <a href="#" className="quick-link">
+    <div className="quick-link-icon">🔧</div>
+    <div className="quick-link-content">
+      <div className="quick-link-title">API Reference</div>
+      <div className="quick-link-description">Complete documentation of all MLTrack APIs</div>
+    </div>
+    <div className="quick-link-arrow">→</div>
+  </a>
+</div>
+
+## Loading States
+
+<div className="space-y-4 my-8">
+  <div className="flex items-center gap-4">
+    <div className="spinner"></div>
+    <span>Loading spinner</span>
+  </div>
+  
+  <div className="space-y-3">
+    <div className="skeleton h-4 w-3/4"></div>
+    <div className="skeleton h-4 w-1/2"></div>
+    <div className="skeleton h-4 w-5/6"></div>
+  </div>
+</div>
+
+## Icons
+
+We use Lucide icons throughout the documentation. Here are some commonly used icons:
+
+<div className="grid grid-cols-4 md:grid-cols-8 gap-4 my-8 text-center">
+  <div className="space-y-2">
+    <div className="text-2xl">🏠</div>
+    <code className="text-xs">home</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">🔍</div>
+    <code className="text-xs">search</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">⚙️</div>
+    <code className="text-xs">settings</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">📊</div>
+    <code className="text-xs">chart</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">💾</div>
+    <code className="text-xs">save</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">🚀</div>
+    <code className="text-xs">deploy</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">⚡</div>
+    <code className="text-xs">fast</code>
+  </div>
+  <div className="space-y-2">
+    <div className="text-2xl">🛡️</div>
+    <code className="text-xs">secure</code>
+  </div>
+</div>
+
+## Animations
+
+<div className="grid md:grid-cols-3 gap-6 my-8">
+  <div className="card animate-fadeIn">
+    <h4>Fade In</h4>
+    <p>Smooth opacity animation</p>
+  </div>
+  
+  <div className="card animate-slideInUp">
+    <h4>Slide In Up</h4>
+    <p>Slides up with fade</p>
+  </div>
+  
+  <div className="card animate-scaleIn">
+    <h4>Scale In</h4>
+    <p>Scales from 90% to 100%</p>
+  </div>
+</div>
+
+## Usage
+
+To use the design system in your documentation:
+
+1. Import the CSS files:
+```css
+@import '/src/styles/design-system.css';
+@import '/src/styles/components.css';
+@import '/src/styles/typography.css';
+```
+
+2. Use the CSS variables:
+```css
+.my-element {
+  color: var(--color-primary-500);
+  padding: var(--space-4);
+  font-size: var(--text-lg);
+}
+```
+
+3. Apply component classes:
+```html
+<button class="btn btn-md btn-primary">
+  Click me
+</button>
+```
+
+## Design Principles
+
+1. **Clarity First**: Clear hierarchy and scannable content
+2. **Performance**: Fast loading and responsive design
+3. **Accessibility**: WCAG 2.1 AA compliant
+4. **Consistency**: Unified design language across all pages
+5. **Developer Focus**: Code examples and interactive demos

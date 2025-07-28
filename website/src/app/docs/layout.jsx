@@ -3,6 +3,9 @@ import { Banner } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
 import 'nextra-theme-docs/style.css'
 import './styles.css'
+import '../../styles/design-system.css'
+import '../../styles/components.css'
+import '../../styles/typography.css'
 
 export const metadata = {
   title: 'MLTrack Documentation',
