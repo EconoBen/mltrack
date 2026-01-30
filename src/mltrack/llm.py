@@ -2,86 +2,82 @@
 
 import time
 import json
-from typing import Dict, Any, Optional, Callable, List, Union, TypeVar
+import inspect
+from typing import Dict, Any, Optional, Callable, Union, TypeVar
 from functools import wraps
 from contextlib import contextmanager
+from collections.abc import Iterator, AsyncIterator
 import logging
-from dataclasses import dataclass, asdict
 
 import mlflow
 
-from mltrack.introspection import ModelIntrospector
+from .pricing import calculate_cost
 
 logger = logging.getLogger(__name__)
 
 # Type variable for generic function types
 F = TypeVar('F', bound=Callable[..., Any])
 
+_STREAM_EXCLUDE_TYPES = (str, bytes, dict, list, tuple)
 
-@dataclass
-class LLMMetrics:
-    """Container for LLM-specific metrics."""
-    prompt_tokens: Optional[int] = None
-    completion_tokens: Optional[int] = None
-    total_tokens: Optional[int] = None
-    latency_ms: Optional[float] = None
-    cost: Optional[float] = None
-    model: Optional[str] = None
-    provider: Optional[str] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
-    frequency_penalty: Optional[float] = None
-    presence_penalty: Optional[float] = None
-    stream: Optional[bool] = None
-    
 
-@dataclass
-class LLMResponse:
-    """Container for LLM response data."""
-    content: str
-    role: Optional[str] = None
-    function_call: Optional[Dict[str, Any]] = None
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    finish_reason: Optional[str] = None
-    
+def _is_streaming_result(result: Any) -> bool:
+    if result is None:
+        return False
+    if inspect.isgenerator(result):
+        return True
+    if isinstance(result, Iterator) and not isinstance(result, _STREAM_EXCLUDE_TYPES):
+        return True
+    if hasattr(result, "__iter__") and not isinstance(result, _STREAM_EXCLUDE_TYPES):
+        return True
+    return False
 
-@dataclass
-class LLMRequest:
-    """Container for LLM request data."""
-    messages: Optional[List[Dict[str, str]]] = None
-    prompt: Optional[str] = None
-    system: Optional[str] = None
-    functions: Optional[List[Dict[str, Any]]] = None
-    tools: Optional[List[Dict[str, Any]]] = None
-    
 
-def calculate_cost(tokens: Dict[str, int], model: str, provider: str) -> float:
-    """Calculate cost based on token usage and model pricing."""
-    # Simplified pricing - in production, this would be more comprehensive
-    pricing = {
-        "openai": {
-            "gpt-4": {"input": 0.03, "output": 0.06},  # per 1K tokens
-            "gpt-4-turbo": {"input": 0.01, "output": 0.03},
-            "gpt-3.5-turbo": {"input": 0.0005, "output": 0.0015},
-            "gpt-4o": {"input": 0.005, "output": 0.015},
-            "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
-        },
-        "anthropic": {
-            "claude-3-opus": {"input": 0.015, "output": 0.075},
-            "claude-3-sonnet": {"input": 0.003, "output": 0.015},
-            "claude-3-haiku": {"input": 0.00025, "output": 0.00125},
-            "claude-3.5-sonnet": {"input": 0.003, "output": 0.015},
-        }
-    }
-    
-    provider_pricing = pricing.get(provider.lower(), {})
-    model_pricing = provider_pricing.get(model.lower(), {"input": 0, "output": 0})
-    
-    input_cost = (tokens.get("prompt_tokens", 0) / 1000) * model_pricing["input"]
-    output_cost = (tokens.get("completion_tokens", 0) / 1000) * model_pricing["output"]
-    
-    return round(input_cost + output_cost, 6)
+def _is_async_streaming_result(result: Any) -> bool:
+    if result is None:
+        return False
+    if inspect.isasyncgen(result):
+        return True
+    if isinstance(result, AsyncIterator):
+        return True
+    if hasattr(result, "__aiter__"):
+        return True
+    return False
+
+
+def _finalize_llm_run(
+    result: Any,
+    provider: Optional[str],
+    model_name: Optional[str],
+    start_time: float,
+    log_outputs: bool,
+    track_tokens: bool,
+    track_cost: bool,
+) -> None:
+    latency_ms = (time.time() - start_time) * 1000
+    mlflow.log_metric("llm.latency_ms", latency_ms)
+
+    if log_outputs and result:
+        outputs = extract_llm_outputs(result)
+        if outputs:
+            mlflow.log_text(json.dumps(outputs, indent=2), "llm_outputs.json")
+
+    metadata_tags = normalize_llm_metadata(provider, result)
+    for key, value in metadata_tags.items():
+        mlflow.set_tag(key, value)
+
+    if track_tokens and result:
+        tokens = normalize_llm_usage(provider, result)
+        if tokens:
+            for key, value in tokens.items():
+                mlflow.log_metric(f"llm.tokens.{key}", value)
+
+            if track_cost:
+                model = model_name or "unknown"
+                if provider and model != "unknown":
+                    cost = calculate_cost(tokens, model, provider)
+                    if cost is not None:
+                        mlflow.log_metric("llm.cost_usd", cost)
 
 
 def track_llm(
@@ -91,7 +87,6 @@ def track_llm(
     tags: Optional[Dict[str, str]] = None,
     log_inputs: bool = True,
     log_outputs: bool = True,
-    log_model_params: bool = True,
     track_tokens: bool = True,
     track_cost: bool = True,
 ) -> Union[F, Callable[[F], F]]:
@@ -104,7 +99,6 @@ def track_llm(
         tags: Additional tags to log
         log_inputs: Whether to log input prompts/messages
         log_outputs: Whether to log output responses
-        log_model_params: Whether to log model parameters
         track_tokens: Whether to track token usage
         track_cost: Whether to estimate and track cost
         
@@ -112,117 +106,226 @@ def track_llm(
         Wrapped function with LLM tracking
     """
     def decorator(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Determine run name
-            run_name = name or f"llm-{func.__name__}"
-            
-            # Prepare tags with hierarchical structure
-            run_tags = {
-                "mltrack.type": "llm",  # Backward compatibility
-                "mltrack.category": "llm",
-                "mltrack.task": "generation"
-            }
-            if tags:
-                run_tags.update(tags)
-            
-            # Check if we're already in an active run
-            active_run = mlflow.active_run()
-            nested = active_run is not None
-            
-            with mlflow.start_run(run_name=run_name, tags=run_tags, nested=nested):
+        if inspect.isasyncgenfunction(func):
+            @wraps(func)
+            async def async_gen_wrapper(*args, **kwargs):
+                run_name = name or f"llm-{func.__name__}"
+
+                provider = kwargs.get("provider") or detect_provider(func, args, kwargs)
+                if not provider:
+                    provider = detect_provider(async_gen_wrapper, args, kwargs)
+                model_name = (
+                    kwargs.get("model")
+                    or kwargs.get("model_name")
+                    or kwargs.get("model_id")
+                    or kwargs.get("modelId")
+                )
+
+                run_tags = {}
+                if tags:
+                    run_tags.update(tags)
+                if provider:
+                    run_tags["llm.provider"] = provider
+                if model_name:
+                    run_tags["llm.model"] = model_name
+
+                nested = mlflow.active_run() is not None
+                mlflow.start_run(run_name=run_name, tags=run_tags, nested=nested)
                 start_time = time.time()
-                
+                last_item = None
+
                 try:
-                    # Extract LLM-specific parameters from kwargs
-                    llm_params = extract_llm_params(kwargs)
-                    if log_model_params and llm_params:
-                        for key, value in llm_params.items():
-                            if value is not None:
-                                mlflow.log_param(f"llm.{key}", value)
-                    
-                    # Detect provider and set framework tags
-                    provider = detect_provider(func, args, kwargs)
-                    if provider:
-                        mlflow.set_tag("mltrack.framework", provider)
-                        mlflow.set_tag("mltrack.provider", provider)
-                    
-                    # Set model algorithm tag if available
-                    if llm_params.get("model"):
-                        mlflow.set_tag("mltrack.algorithm", llm_params["model"])
-                    
-                    # Log inputs
+                    if provider and "llm.provider" not in run_tags:
+                        mlflow.set_tag("llm.provider", provider)
+                    if model_name and "llm.model" not in run_tags:
+                        mlflow.set_tag("llm.model", model_name)
+
                     if log_inputs:
                         inputs = extract_llm_inputs(args, kwargs)
                         if inputs:
-                            # Log as artifact due to size limitations
-                            mlflow.log_text(
-                                json.dumps(inputs, indent=2),
-                                "llm_inputs.json"
-                            )
-                    
-                    # Execute function
+                            mlflow.log_text(json.dumps(inputs, indent=2), "llm_inputs.json")
+
                     result = func(*args, **kwargs)
-                    
-                    # Calculate latency
-                    latency_ms = (time.time() - start_time) * 1000
-                    mlflow.log_metric("llm.latency_ms", latency_ms)
-                    
-                    # Extract and log outputs
-                    if log_outputs and result:
-                        outputs = extract_llm_outputs(result)
-                        if outputs:
-                            mlflow.log_text(
-                                json.dumps(outputs, indent=2),
-                                "llm_outputs.json"
-                            )
-                    
-                    # Track tokens if available
-                    if track_tokens and result:
-                        tokens = extract_token_usage(result)
-                        if tokens:
-                            for key, value in tokens.items():
-                                mlflow.log_metric(f"llm.tokens.{key}", value)
-                            
-                            # Calculate and log cost
-                            if track_cost:
-                                model = llm_params.get("model", "unknown")
-                                provider = detect_provider(func, args, kwargs)
-                                if provider and model != "unknown":
-                                    cost = calculate_cost(tokens, model, provider)
-                                    mlflow.log_metric("llm.cost_usd", cost)
-                    
+                    async for item in result:
+                        last_item = item
+                        yield item
+                finally:
+                    _finalize_llm_run(
+                        last_item,
+                        provider,
+                        model_name,
+                        start_time,
+                        log_outputs,
+                        track_tokens,
+                        track_cost,
+                    )
+                    mlflow.end_run()
+
+            return async_gen_wrapper  # type: ignore[return-value]
+
+        if inspect.iscoroutinefunction(func):
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                run_name = name or f"llm-{func.__name__}"
+
+                provider = kwargs.get("provider") or detect_provider(func, args, kwargs)
+                if not provider:
+                    provider = detect_provider(async_wrapper, args, kwargs)
+                model_name = (
+                    kwargs.get("model")
+                    or kwargs.get("model_name")
+                    or kwargs.get("model_id")
+                    or kwargs.get("modelId")
+                )
+
+                run_tags = {}
+                if tags:
+                    run_tags.update(tags)
+                if provider:
+                    run_tags["llm.provider"] = provider
+                if model_name:
+                    run_tags["llm.model"] = model_name
+
+                nested = mlflow.active_run() is not None
+                mlflow.start_run(run_name=run_name, tags=run_tags, nested=nested)
+                start_time = time.time()
+                streaming = False
+
+                try:
+                    if provider and "llm.provider" not in run_tags:
+                        mlflow.set_tag("llm.provider", provider)
+                    if model_name and "llm.model" not in run_tags:
+                        mlflow.set_tag("llm.model", model_name)
+
+                    if log_inputs:
+                        inputs = extract_llm_inputs(args, kwargs)
+                        if inputs:
+                            mlflow.log_text(json.dumps(inputs, indent=2), "llm_inputs.json")
+
+                    result = await func(*args, **kwargs)
+
+                    if _is_async_streaming_result(result):
+                        streaming = True
+
+                        async def stream_wrapper():
+                            last_item = None
+                            try:
+                                async for item in result:
+                                    last_item = item
+                                    yield item
+                            finally:
+                                _finalize_llm_run(
+                                    last_item,
+                                    provider,
+                                    model_name,
+                                    start_time,
+                                    log_outputs,
+                                    track_tokens,
+                                    track_cost,
+                                )
+                                mlflow.end_run()
+
+                        return stream_wrapper()
+
+                    _finalize_llm_run(
+                        result,
+                        provider,
+                        model_name,
+                        start_time,
+                        log_outputs,
+                        track_tokens,
+                        track_cost,
+                    )
                     return result
-                    
-                except Exception as e:
-                    mlflow.log_param("llm.error", str(e))
-                    raise
-                    
+                finally:
+                    if not streaming:
+                        mlflow.end_run()
+
+            return async_wrapper  # type: ignore[return-value]
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            run_name = name or f"llm-{func.__name__}"
+
+            provider = kwargs.get("provider") or detect_provider(func, args, kwargs)
+            if not provider:
+                provider = detect_provider(wrapper, args, kwargs)
+            model_name = (
+                kwargs.get("model")
+                or kwargs.get("model_name")
+                or kwargs.get("model_id")
+                or kwargs.get("modelId")
+            )
+
+            run_tags = {}
+            if tags:
+                run_tags.update(tags)
+            if provider:
+                run_tags["llm.provider"] = provider
+            if model_name:
+                run_tags["llm.model"] = model_name
+
+            nested = mlflow.active_run() is not None
+            mlflow.start_run(run_name=run_name, tags=run_tags, nested=nested)
+            start_time = time.time()
+            streaming = False
+
+            try:
+                if provider and "llm.provider" not in run_tags:
+                    mlflow.set_tag("llm.provider", provider)
+                if model_name and "llm.model" not in run_tags:
+                    mlflow.set_tag("llm.model", model_name)
+
+                if log_inputs:
+                    inputs = extract_llm_inputs(args, kwargs)
+                    if inputs:
+                        mlflow.log_text(json.dumps(inputs, indent=2), "llm_inputs.json")
+
+                result = func(*args, **kwargs)
+
+                if _is_streaming_result(result):
+                    streaming = True
+
+                    def stream_wrapper():
+                        last_item = None
+                        try:
+                            for item in result:
+                                last_item = item
+                                yield item
+                        finally:
+                            _finalize_llm_run(
+                                last_item,
+                                provider,
+                                model_name,
+                                start_time,
+                                log_outputs,
+                                track_tokens,
+                                track_cost,
+                            )
+                            mlflow.end_run()
+
+                    return stream_wrapper()
+
+                _finalize_llm_run(
+                    result,
+                    provider,
+                    model_name,
+                    start_time,
+                    log_outputs,
+                    track_tokens,
+                    track_cost,
+                )
+                return result
+            finally:
+                if not streaming:
+                    mlflow.end_run()
+
         return wrapper
     
     if func is None:
         return decorator
     else:
         return decorator(func)
-
-
-def extract_llm_params(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract common LLM parameters from function kwargs."""
-    llm_params = {}
-    
-    # Common parameters across providers
-    param_names = [
-        "model", "temperature", "max_tokens", "top_p", 
-        "frequency_penalty", "presence_penalty", "stream",
-        "n", "stop", "seed", "response_format", "tool_choice",
-        "top_k", "max_output_tokens", "stop_sequences"
-    ]
-    
-    for param in param_names:
-        if param in kwargs:
-            llm_params[param] = kwargs[param]
-    
-    return llm_params
 
 
 def extract_llm_inputs(args: tuple, kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -314,59 +417,275 @@ def extract_llm_outputs(result: Any) -> Dict[str, Any]:
     return outputs
 
 
-def extract_token_usage(result: Any) -> Dict[str, int]:
-    """Extract token usage from LLM response."""
-    tokens = {}
-    
-    # OpenAI format
-    if hasattr(result, "usage"):
-        usage = result.usage
-        if hasattr(usage, "prompt_tokens"):
-            tokens["prompt_tokens"] = usage.prompt_tokens
-        if hasattr(usage, "completion_tokens"):
-            tokens["completion_tokens"] = usage.completion_tokens
-        if hasattr(usage, "total_tokens"):
-            tokens["total_tokens"] = usage.total_tokens
-    
-    # Anthropic format (in response metadata)
-    elif hasattr(result, "usage"):
-        if isinstance(result.usage, dict):
-            tokens.update(result.usage)
-    
-    # LangChain format (might have token counts in metadata)
-    elif hasattr(result, "llm_output") and isinstance(result.llm_output, dict):
-        token_data = result.llm_output.get("token_usage", {})
-        tokens.update(token_data)
-    
+def _get_usage_value(container: Any, *names: str) -> Optional[int]:
+    for name in names:
+        if isinstance(container, dict) and name in container:
+            return container[name]
+        if hasattr(container, name):
+            return getattr(container, name)
+    return None
+
+
+def _get_usage_container(result: Any, *names: str) -> Any:
+    for name in names:
+        if isinstance(result, dict) and name in result:
+            return result[name]
+        if hasattr(result, name):
+            return getattr(result, name)
+    return None
+
+
+def _get_value(container: Any, *names: str) -> Any:
+    for name in names:
+        if isinstance(container, dict) and name in container:
+            return container[name]
+        if hasattr(container, name):
+            return getattr(container, name)
+    return None
+
+
+def _infer_provider_from_model_name(model_name: Optional[str]) -> Optional[str]:
+    if not model_name:
+        return None
+
+    normalized = model_name.strip().lower()
+    if not normalized:
+        return None
+
+    if "/" in normalized:
+        prefix = normalized.split("/", 1)[0]
+        if prefix in {"openai", "anthropic", "bedrock", "gemini"}:
+            return prefix
+        if prefix in {"vertexai", "vertex_ai", "vertex"}:
+            return "vertex_ai"
+        if prefix in {"google"}:
+            return "gemini"
+
+    if "bedrock" in normalized:
+        return "bedrock"
+    if "gpt" in normalized or "openai" in normalized:
+        return "openai"
+    if "claude" in normalized or "anthropic" in normalized:
+        return "anthropic"
+    if "vertex" in normalized:
+        return "vertex_ai"
+    if "gemini" in normalized:
+        return "gemini"
+
+    return None
+
+
+def normalize_llm_usage(provider: Optional[str], result: Any) -> Dict[str, int]:
+    """Normalize provider token usage to canonical keys."""
+    if not provider:
+        return {}
+
+    provider = provider.lower()
+    tokens: Dict[str, int] = {}
+
+    if provider == "openai":
+        usage = _get_usage_container(result, "usage")
+        if usage:
+            prompt = _get_usage_value(usage, "prompt_tokens", "input_tokens")
+            completion = _get_usage_value(usage, "completion_tokens", "output_tokens")
+            total = _get_usage_value(usage, "total_tokens")
+
+            if prompt is not None:
+                tokens["prompt_tokens"] = prompt
+            if completion is not None:
+                tokens["completion_tokens"] = completion
+            if total is not None:
+                tokens["total_tokens"] = total
+
+    elif provider == "anthropic":
+        usage = _get_usage_container(result, "usage")
+        if usage:
+            prompt = _get_usage_value(usage, "input_tokens", "prompt_tokens")
+            completion = _get_usage_value(usage, "output_tokens", "completion_tokens")
+            total = _get_usage_value(usage, "total_tokens")
+            cache_creation = _get_usage_value(usage, "cache_creation_input_tokens")
+            cache_read = _get_usage_value(usage, "cache_read_input_tokens")
+
+            if prompt is not None:
+                tokens["prompt_tokens"] = prompt
+            if completion is not None:
+                tokens["completion_tokens"] = completion
+            if total is not None:
+                tokens["total_tokens"] = total
+            if cache_creation is not None:
+                tokens["cache_creation_input_tokens"] = cache_creation
+            if cache_read is not None:
+                tokens["cache_read_input_tokens"] = cache_read
+
+    elif provider in {"gemini", "vertex_ai"}:
+        usage = _get_usage_container(result, "usageMetadata", "usage_metadata")
+        if usage:
+            prompt = _get_usage_value(
+                usage,
+                "promptTokenCount",
+                "prompt_token_count",
+                "inputTokenCount",
+                "input_token_count",
+            )
+            completion = _get_usage_value(
+                usage,
+                "candidatesTokenCount",
+                "candidates_token_count",
+                "outputTokenCount",
+                "output_token_count",
+            )
+            total = _get_usage_value(usage, "totalTokenCount", "total_token_count")
+            cached = _get_usage_value(usage, "cachedContentTokenCount", "cached_content_token_count")
+            tool_use = _get_usage_value(usage, "toolUsePromptTokenCount", "tool_use_prompt_token_count")
+
+            if prompt is not None:
+                tokens["prompt_tokens"] = prompt
+            if completion is not None:
+                tokens["completion_tokens"] = completion
+            if total is not None:
+                tokens["total_tokens"] = total
+            if cached is not None:
+                tokens["cached_content_token_count"] = cached
+            if tool_use is not None:
+                tokens["tool_use_prompt_token_count"] = tool_use
+
+    elif provider == "bedrock":
+        usage = _get_usage_container(result, "usage")
+        if usage:
+            prompt = _get_usage_value(
+                usage,
+                "inputTokens",
+                "inputTokenCount",
+                "input_token_count",
+            )
+            completion = _get_usage_value(
+                usage,
+                "outputTokens",
+                "outputTokenCount",
+                "output_token_count",
+            )
+            total = _get_usage_value(
+                usage,
+                "totalTokens",
+                "totalTokenCount",
+                "total_token_count",
+            )
+            cache_read = _get_usage_value(
+                usage,
+                "cacheReadInputTokens",
+                "cacheReadInputTokenCount",
+                "cache_read_input_tokens",
+            )
+            cache_write = _get_usage_value(
+                usage,
+                "cacheWriteInputTokens",
+                "cacheWriteInputTokenCount",
+                "cache_write_input_tokens",
+            )
+
+            if prompt is not None:
+                tokens["prompt_tokens"] = prompt
+            if completion is not None:
+                tokens["completion_tokens"] = completion
+            if total is not None:
+                tokens["total_tokens"] = total
+            if cache_read is not None:
+                tokens["cache_read_input_tokens"] = cache_read
+            if cache_write is not None:
+                tokens["cache_write_input_tokens"] = cache_write
+
+    if (
+        "total_tokens" not in tokens
+        and "prompt_tokens" in tokens
+        and "completion_tokens" in tokens
+    ):
+        tokens["total_tokens"] = tokens["prompt_tokens"] + tokens["completion_tokens"]
+
     return tokens
+
+
+def normalize_llm_metadata(provider: Optional[str], result: Any) -> Dict[str, str]:
+    """Normalize provider metadata to canonical tags."""
+    if not provider or result is None:
+        return {}
+
+    provider = provider.lower()
+    metadata: Dict[str, str] = {}
+
+    def set_tag(key: str, value: Any) -> None:
+        if value is None:
+            return
+        metadata[key] = str(value)
+
+    if provider == "openai":
+        set_tag("llm.response_id", _get_value(result, "id"))
+        set_tag("llm.request_id", _get_value(result, "_request_id", "request_id"))
+
+        choices = _get_value(result, "choices")
+        if isinstance(choices, (list, tuple)) and choices:
+            set_tag("llm.finish_reason", _get_value(choices[0], "finish_reason"))
+
+    elif provider == "anthropic":
+        set_tag("llm.response_id", _get_value(result, "id"))
+        set_tag("llm.request_id", _get_value(result, "_request_id", "request_id"))
+        set_tag("llm.finish_reason", _get_value(result, "stop_reason"))
+
+    elif provider in {"gemini", "vertex_ai"}:
+        set_tag("llm.response_id", _get_value(result, "responseId", "response_id"))
+        set_tag("llm.request_id", _get_value(result, "requestId", "request_id"))
+
+        candidates = _get_value(result, "candidates")
+        if isinstance(candidates, (list, tuple)) and candidates:
+            set_tag("llm.finish_reason", _get_value(candidates[0], "finishReason", "finish_reason"))
+
+    elif provider == "bedrock":
+        set_tag("llm.request_id", _get_value(result, "requestId", "request_id"))
+        set_tag("llm.response_id", _get_value(result, "responseId", "response_id"))
+        set_tag("llm.finish_reason", _get_value(result, "stopReason", "stop_reason"))
+
+    return metadata
 
 
 def detect_provider(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Optional[str]:
     """Detect the LLM provider from function context."""
     # Check function module
     module = getattr(func, "__module__", "")
+    model_id = kwargs.get("model_id") or kwargs.get("modelId")
+    model_name = kwargs.get("model") or kwargs.get("model_name")
     
     if "openai" in module:
         return "openai"
     elif "anthropic" in module:
         return "anthropic"
+    elif "bedrock" in module:
+        return "bedrock"
+    elif "vertexai" in module:
+        return "vertex_ai"
+    elif any(token in module for token in ("generativeai", "genai", "generativelanguage")):
+        return "gemini"
     elif "langchain" in module:
         # Try to detect actual provider from model name
-        model = kwargs.get("model", "")
-        if "gpt" in model.lower():
-            return "openai"
-        elif "claude" in model.lower():
-            return "anthropic"
+        if model_id:
+            return "bedrock"
+
+        inferred = _infer_provider_from_model_name(model_name)
+        if inferred:
+            return inferred
         return "langchain"
     elif "litellm" in module:
         # LiteLLM can use multiple providers
-        model = kwargs.get("model", "")
-        if "gpt" in model.lower() or "openai" in model.lower():
-            return "openai"
-        elif "claude" in model.lower() or "anthropic" in model.lower():
-            return "anthropic"
+        inferred = _infer_provider_from_model_name(model_name)
+        if inferred:
+            return inferred
         return "litellm"
     
+    if model_id:
+        return "bedrock"
+
+    inferred = _infer_provider_from_model_name(model_name)
+    if inferred:
+        return inferred
+
     # Check if the function is a method of a client object
     if args and hasattr(args[0], "__class__"):
         class_name = args[0].__class__.__name__.lower()
@@ -374,6 +693,12 @@ def detect_provider(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Opti
             return "openai"
         elif "anthropic" in class_name:
             return "anthropic"
+        elif "bedrock" in class_name:
+            return "bedrock"
+        elif "vertex" in class_name:
+            return "vertex_ai"
+        elif "gemini" in class_name or "google" in class_name:
+            return "gemini"
     
     return None
 
@@ -382,69 +707,112 @@ def detect_provider(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Opti
 def track_llm_context(
     name: str,
     tags: Optional[Dict[str, str]] = None,
-    log_aggregated_metrics: bool = True
 ):
-    """
-    Context manager for tracking multiple LLM calls.
-    
-    Useful for tracking conversations or chains of LLM calls.
-    """
-    run_tags = {"mltrack.type": "llm_conversation"}
-    if tags:
-        run_tags.update(tags)
-    
-    # Track aggregated metrics
-    metrics_accumulator = {
-        "total_prompt_tokens": 0,
-        "total_completion_tokens": 0,
-        "total_tokens": 0,
-        "total_cost": 0.0,
-        "num_calls": 0,
-        "total_latency_ms": 0.0,
-    }
-    
+    """Context manager for tracking multiple LLM calls."""
+    run_tags = tags.copy() if tags else {}
+
     # Check if we're already in an active run
     active_run = mlflow.active_run()
     nested = active_run is not None
-    
+
     with mlflow.start_run(run_name=name, tags=run_tags, nested=nested) as run:
-        # Store accumulator in run context for nested tracking
-        run_id = run.info.run_id
-        _context_accumulators[run_id] = metrics_accumulator
-        
-        try:
-            yield run
-        finally:
-            # Log aggregated metrics
-            if log_aggregated_metrics:
-                for metric_name, value in metrics_accumulator.items():
-                    if value > 0:
-                        mlflow.log_metric(f"llm.conversation.{metric_name}", value)
-            
-            # Clean up
-            _context_accumulators.pop(run_id, None)
+        yield run
 
 
-# Global storage for context accumulators
-_context_accumulators: Dict[str, Dict[str, Union[int, float]]] = {}
+def log_llm_call(
+    *,
+    provider: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    latency_ms: float,
+    finish_reason: Optional[str] = None,
+    request_id: Optional[str] = None,
+    response_id: Optional[str] = None,
+    cost_usd: Optional[float] = None,
+    run_name: Optional[str] = None,
+    tags: Optional[Dict[str, str]] = None,
+) -> None:
+    """Log an LLM call to MLflow.
 
+    This is a simple function for direct integration with LLM clients.
+    It handles all MLflow logging in one call, including:
+    - Token usage metrics
+    - Latency
+    - Cost calculation (automatic if not provided)
+    - Provider/model tags
 
-def get_current_accumulator() -> Optional[Dict[str, Union[int, float]]]:
-    """Get the current context accumulator if in a tracked context."""
+    If no MLflow run is active, a new run is started and ended automatically.
+    If a run is active, metrics are logged to the current run.
+
+    Args:
+        provider: LLM provider name (e.g., "openai", "anthropic", "bedrock")
+        model: Model identifier (e.g., "gpt-4", "claude-3-sonnet")
+        input_tokens: Number of input/prompt tokens
+        output_tokens: Number of output/completion tokens
+        latency_ms: Request latency in milliseconds
+        finish_reason: Stop reason (e.g., "stop", "length", "tool_calls")
+        request_id: Provider request ID
+        response_id: Provider response ID
+        cost_usd: Cost in USD (auto-calculated if not provided)
+        run_name: Optional name for the MLflow run (if starting a new one)
+        tags: Additional tags to log
+
+    Example:
+        >>> from mltrack import log_llm_call
+        >>>
+        >>> # After making an LLM call:
+        >>> log_llm_call(
+        ...     provider="anthropic",
+        ...     model="claude-3-5-sonnet",
+        ...     input_tokens=150,
+        ...     output_tokens=75,
+        ...     latency_ms=1234.5,
+        ...     finish_reason="end_turn",
+        ... )
+    """
+    # Determine if we need to manage our own run
     active_run = mlflow.active_run()
-    if active_run:
-        return _context_accumulators.get(active_run.info.run_id)
-    return None
+    manage_run = active_run is None
 
+    if manage_run:
+        name = run_name or f"llm-{provider}-{model}"
+        mlflow.start_run(run_name=name)
 
-class LLMTracker:
-    """LLM tracking functionality for MLTracker."""
-    
-    def __init__(self, config):
-        """Initialize LLM tracker with config."""
-        self.config = config
-        self.enabled = getattr(config, 'llm_tracking_enabled', True)
-        
-    def is_enabled(self) -> bool:
-        """Check if LLM tracking is enabled."""
-        return self.enabled
+    try:
+        # Log metrics
+        mlflow.log_metric("llm.latency_ms", latency_ms)
+        mlflow.log_metric("llm.tokens.prompt_tokens", input_tokens)
+        mlflow.log_metric("llm.tokens.completion_tokens", output_tokens)
+        mlflow.log_metric("llm.tokens.total_tokens", input_tokens + output_tokens)
+
+        # Calculate cost if not provided
+        if cost_usd is None:
+            tokens = {
+                "prompt_tokens": input_tokens,
+                "completion_tokens": output_tokens,
+            }
+            cost_usd = calculate_cost(tokens, model, provider)
+
+        if cost_usd is not None:
+            mlflow.log_metric("llm.cost_usd", cost_usd)
+
+        # Log tags
+        mlflow.set_tag("llm.provider", provider)
+        mlflow.set_tag("llm.model", model)
+
+        if finish_reason:
+            mlflow.set_tag("llm.finish_reason", finish_reason)
+        if request_id:
+            mlflow.set_tag("llm.request_id", request_id)
+        if response_id:
+            mlflow.set_tag("llm.response_id", response_id)
+
+        # Additional custom tags
+        if tags:
+            for key, value in tags.items():
+                mlflow.set_tag(key, value)
+
+    finally:
+        if manage_run:
+            mlflow.end_run()

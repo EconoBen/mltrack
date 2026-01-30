@@ -1,11 +1,10 @@
 """Tests for LLM tracking functionality."""
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock
 from mltrack.llm import (
-    track_llm, track_llm_context, extract_llm_params,
-    extract_llm_inputs, extract_llm_outputs, extract_token_usage,
-    detect_provider, calculate_cost, LLMMetrics, LLMRequest, LLMResponse
+    track_llm, track_llm_context, extract_llm_inputs, extract_llm_outputs,
+    detect_provider, calculate_cost
 )
 import mlflow
 
@@ -57,6 +56,8 @@ class TestLLMTracking:
             # Need to add choices for extract_llm_outputs to work
             response.choices = []
             return response
+        
+        dummy_llm_call.__module__ = "openai.resources.chat"
         
         # Mock required methods
         mock_mlflow.log_text = Mock()
@@ -114,24 +115,6 @@ class TestLLMTracking:
         # After context, aggregated metrics should be logged
         assert mock_mlflow.log_metric.called
     
-    def test_extract_llm_params(self):
-        """Test extraction of LLM parameters."""
-        kwargs = {
-            "model": "gpt-4",
-            "temperature": 0.7,
-            "max_tokens": 100,
-            "top_p": 0.9,
-            "unrelated_param": "ignore"
-        }
-        
-        params = extract_llm_params(kwargs)
-        
-        assert params["model"] == "gpt-4"
-        assert params["temperature"] == 0.7
-        assert params["max_tokens"] == 100
-        assert params["top_p"] == 0.9
-        assert "unrelated_param" not in params
-    
     def test_extract_llm_inputs(self):
         """Test extraction of LLM inputs."""
         # Test with messages in kwargs
@@ -163,6 +146,7 @@ class TestLLMTracking:
             role="assistant",
             content="Test response"
         )
+        choice.message.tool_calls = None
         
         response = Mock()
         response.choices = [choice]
@@ -186,21 +170,6 @@ class TestLLMTracking:
         assert outputs["role"] == "assistant"
         assert outputs["stop_reason"] == "end_turn"
     
-    def test_extract_token_usage_openai(self):
-        """Test token extraction from OpenAI response."""
-        response = Mock()
-        response.usage = Mock(
-            prompt_tokens=15,
-            completion_tokens=25,
-            total_tokens=40
-        )
-        
-        tokens = extract_token_usage(response)
-        
-        assert tokens["prompt_tokens"] == 15
-        assert tokens["completion_tokens"] == 25
-        assert tokens["total_tokens"] == 40
-    
     def test_detect_provider(self):
         """Test LLM provider detection."""
         # Test by module name
@@ -220,54 +189,67 @@ class TestLLMTracking:
         
         provider = detect_provider(func, (), {"model": "claude-3-opus"})
         assert provider == "anthropic"
+
+        func.__module__ = "litellm.router"
+        provider = detect_provider(
+            func,
+            (),
+            {"model": "bedrock/anthropic.claude-3-sonnet-20240229-v1:0"},
+        )
+        assert provider == "bedrock"
+
+        provider = detect_provider(func, (), {"model": "gemini/gemini-1.5-pro"})
+        assert provider == "gemini"
+
+        func.__module__ = "langchain_aws.chat_models"
+        provider = detect_provider(
+            func,
+            (),
+            {"model_id": "anthropic.claude-3-sonnet-20240229-v1:0"},
+        )
+        assert provider == "bedrock"
+
+        func.__module__ = "custom.wrapper"
+        provider = detect_provider(func, (), {"model_name": "openai/gpt-4o-mini"})
+        assert provider == "openai"
+
+        func.__module__ = "vertexai.preview.generative_models"
+        provider = detect_provider(func, (), {"model": "vertex_ai/gemini-1.5-pro"})
+        assert provider == "vertex_ai"
     
     def test_calculate_cost(self):
         """Test cost calculation."""
+        snapshot = {
+            "schema_version": "1",
+            "models": {
+                "gpt-3.5-turbo": {
+                    "canonical_provider": "openai",
+                    "input_cost_per_token": 5e-7,
+                    "output_cost_per_token": 1.5e-6,
+                },
+                "claude-3-haiku": {
+                    "canonical_provider": "anthropic",
+                    "input_cost_per_token": 2.5e-7,
+                    "output_cost_per_token": 1.25e-6,
+                },
+            },
+        }
+
         # Test OpenAI pricing
         tokens = {"prompt_tokens": 1000, "completion_tokens": 500}
-        cost = calculate_cost(tokens, "gpt-3.5-turbo", "openai")
-        expected = (1000/1000 * 0.0005) + (500/1000 * 0.0015)  # $0.0005 + $0.00075
+        cost = calculate_cost(tokens, "gpt-3.5-turbo", "openai", snapshot=snapshot)
+        expected = (1000 * 5e-7) + (500 * 1.5e-6)
         assert cost == round(expected, 6)
-        
+
         # Test Anthropic pricing
         tokens = {"prompt_tokens": 2000, "completion_tokens": 1000}
-        cost = calculate_cost(tokens, "claude-3-haiku", "anthropic")
-        expected = (2000/1000 * 0.00025) + (1000/1000 * 0.00125)  # $0.0005 + $0.00125
+        cost = calculate_cost(tokens, "claude-3-haiku", "anthropic", snapshot=snapshot)
+        expected = (2000 * 2.5e-7) + (1000 * 1.25e-6)
         assert cost == round(expected, 6)
-        
+
         # Test unknown model/provider
-        cost = calculate_cost(tokens, "unknown-model", "unknown")
-        assert cost == 0.0
-    
-    def test_llm_dataclasses(self):
-        """Test LLM dataclass functionality."""
-        # Test LLMMetrics
-        metrics = LLMMetrics(
-            prompt_tokens=100,
-            completion_tokens=200,
-            total_tokens=300,
-            model="gpt-4",
-            temperature=0.7
-        )
-        assert metrics.prompt_tokens == 100
-        assert metrics.model == "gpt-4"
-        
-        # Test LLMRequest
-        request = LLMRequest(
-            messages=[{"role": "user", "content": "Hello"}],
-            system="Be helpful"
-        )
-        assert len(request.messages) == 1
-        assert request.system == "Be helpful"
-        
-        # Test LLMResponse
-        response = LLMResponse(
-            content="Hello there!",
-            role="assistant",
-            finish_reason="stop"
-        )
-        assert response.content == "Hello there!"
-        assert response.finish_reason == "stop"
+        cost = calculate_cost(tokens, "unknown-model", "unknown", snapshot=snapshot)
+        assert cost is None
     
     def test_nested_tracking(self, mock_mlflow):
         """Test nested LLM tracking."""
@@ -283,7 +265,7 @@ class TestLLMTracking:
         # Should create nested run
         mock_mlflow.start_run.assert_called_with(
             run_name="llm-nested_call",
-            tags={"mltrack.type": "llm"},
+            tags={},
             nested=True
         )
     
@@ -295,6 +277,132 @@ class TestLLMTracking:
         
         with pytest.raises(ValueError, match="Test error"):
             failing_call()
-        
-        # Error should be logged
-        mock_mlflow.log_param.assert_called_with("llm.error", "Test error")
+
+        assert mock_mlflow.log_param.call_count == 0
+
+
+def test_llm_tracker_removed():
+    """Ensure legacy LLMTracker stub is not part of the API."""
+    import mltrack.llm as llm
+
+    assert not hasattr(llm, "LLMTracker")
+
+
+class TestLogLLMCall:
+    """Test the log_llm_call() function for direct integration."""
+
+    @pytest.fixture
+    def mock_mlflow(self, monkeypatch):
+        """Mock MLflow for testing."""
+        mock = Mock()
+        mock.active_run.return_value = None  # No active run by default
+        mock.log_metric = Mock()
+        mock.set_tag = Mock()
+        mock.start_run = Mock()
+        mock.end_run = Mock()
+        monkeypatch.setattr("mltrack.llm.mlflow", mock)
+        return mock
+
+    def test_log_llm_call_basic(self, mock_mlflow):
+        """Test basic log_llm_call functionality."""
+        from mltrack.llm import log_llm_call
+
+        log_llm_call(
+            provider="anthropic",
+            model="claude-3-5-sonnet",
+            input_tokens=100,
+            output_tokens=50,
+            latency_ms=1234.5,
+        )
+
+        # Should start and end a run (no active run)
+        mock_mlflow.start_run.assert_called_once()
+        mock_mlflow.end_run.assert_called_once()
+
+        # Check metrics logged
+        metric_calls = {call.args[0]: call.args[1] for call in mock_mlflow.log_metric.call_args_list}
+        assert metric_calls["llm.latency_ms"] == 1234.5
+        assert metric_calls["llm.tokens.prompt_tokens"] == 100
+        assert metric_calls["llm.tokens.completion_tokens"] == 50
+        assert metric_calls["llm.tokens.total_tokens"] == 150
+
+        # Check tags logged
+        tag_calls = {call.args[0]: call.args[1] for call in mock_mlflow.set_tag.call_args_list}
+        assert tag_calls["llm.provider"] == "anthropic"
+        assert tag_calls["llm.model"] == "claude-3-5-sonnet"
+
+    def test_log_llm_call_with_metadata(self, mock_mlflow):
+        """Test log_llm_call with optional metadata."""
+        from mltrack.llm import log_llm_call
+
+        log_llm_call(
+            provider="openai",
+            model="gpt-4",
+            input_tokens=200,
+            output_tokens=100,
+            latency_ms=500.0,
+            finish_reason="stop",
+            request_id="req-123",
+            response_id="resp-456",
+        )
+
+        tag_calls = {call.args[0]: call.args[1] for call in mock_mlflow.set_tag.call_args_list}
+        assert tag_calls["llm.finish_reason"] == "stop"
+        assert tag_calls["llm.request_id"] == "req-123"
+        assert tag_calls["llm.response_id"] == "resp-456"
+
+    def test_log_llm_call_with_active_run(self, mock_mlflow):
+        """Test log_llm_call when there's an active MLflow run."""
+        from mltrack.llm import log_llm_call
+
+        # Simulate active run
+        mock_mlflow.active_run.return_value = Mock(info=Mock(run_id="existing-run"))
+
+        log_llm_call(
+            provider="bedrock",
+            model="anthropic.claude-3-sonnet",
+            input_tokens=50,
+            output_tokens=25,
+            latency_ms=800.0,
+        )
+
+        # Should NOT start a new run (use existing)
+        mock_mlflow.start_run.assert_not_called()
+        # Should NOT end run (leave it open for caller)
+        mock_mlflow.end_run.assert_not_called()
+
+        # Metrics should still be logged
+        assert mock_mlflow.log_metric.called
+
+    def test_log_llm_call_with_custom_tags(self, mock_mlflow):
+        """Test log_llm_call with additional custom tags."""
+        from mltrack.llm import log_llm_call
+
+        log_llm_call(
+            provider="gemini",
+            model="gemini-pro",
+            input_tokens=100,
+            output_tokens=50,
+            latency_ms=600.0,
+            tags={"custom.tag": "value", "environment": "test"},
+        )
+
+        tag_calls = {call.args[0]: call.args[1] for call in mock_mlflow.set_tag.call_args_list}
+        assert tag_calls["custom.tag"] == "value"
+        assert tag_calls["environment"] == "test"
+
+    def test_log_llm_call_with_explicit_cost(self, mock_mlflow):
+        """Test log_llm_call with explicitly provided cost."""
+        from mltrack.llm import log_llm_call
+
+        log_llm_call(
+            provider="anthropic",
+            model="claude-3-opus",
+            input_tokens=1000,
+            output_tokens=500,
+            latency_ms=2000.0,
+            cost_usd=0.05,
+        )
+
+        metric_calls = {call.args[0]: call.args[1] for call in mock_mlflow.log_metric.call_args_list}
+        assert metric_calls["llm.cost_usd"] == 0.05
