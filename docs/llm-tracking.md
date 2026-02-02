@@ -1,233 +1,163 @@
 # LLM Tracking in mltrack
 
-mltrack now includes comprehensive support for tracking Large Language Model (LLM) interactions, building on top of MLflow's LLM tracking capabilities while adding enhanced features for production use.
+mltrack provides lightweight LLM tracking on top of MLflow. Use the `@track_llm` decorator to log prompts, responses, token usage, cost, and latency with a canonical schema so the UI works out of the box.
 
 ## Features
 
-### 🔍 Auto-Detection of LLM Frameworks
+### 🔍 Provider Auto-Detection
 - OpenAI
 - Anthropic (Claude)
-- LangChain (including community and provider-specific packages)
-- LlamaIndex
-- LiteLLM
-- DSPy
+- Google Gemini (GenAI)
+- Google Vertex AI
+- AWS Bedrock
+- LangChain and LiteLLM (provider inferred from model name)
+- **llama-party** (automatic tracking built-in)
 
-### 📊 Comprehensive LLM Tracking
-- **Prompt & Response Logging**: Full conversation history with timestamps
-- **Token Usage Tracking**: Input, output, and total tokens per call
-- **Cost Estimation**: Automatic cost calculation for 20+ models
-- **Cumulative Metrics**: Running totals for tokens and costs
-- **Multi-turn Conversations**: Full context preservation
-- **Streaming Support**: Handle streaming responses
-- **Error Tracking**: Capture and log failed API calls
+### ⏱️ Async + Streaming Support
+- Async functions are tracked automatically.
+- Streaming iterators and async generators log metrics when the stream completes.
+- Tokens and cost are derived from the final chunk when available.
 
-### 💰 Cost Tracking
-mltrack includes pricing data for popular models:
-- OpenAI: GPT-4, GPT-4 Turbo, GPT-4o, GPT-3.5 Turbo
-- Anthropic: Claude 3 Opus, Sonnet, Haiku, Claude 2.x
-- Google: Gemini Pro, Gemini 1.5
-- Meta: Llama 2 & 3 variants
-- Mistral: Tiny, Small, Medium, Large, Mixtral
-- And more...
+### 📊 What Gets Logged
+- **Prompt & Response Artifacts** (JSON for messages/outputs)
+- **Token Usage** (prompt/completion/total)
+- **Cost Estimate** (when pricing is known)
+- **Latency** in milliseconds
 
 ## Usage
 
-### Basic Tracking with Context Manager
+### Track a Single Call
 
 ```python
-from mltrack import track_llm_context
-import openai
+from mltrack import track_llm
+from openai import OpenAI
 
-client = openai.OpenAI()
+client = OpenAI()
 
-with track_llm_context("chat-analysis", model="gpt-4", provider="openai") as tracker:
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": "Explain quantum computing"}],
-        temperature=0.7
+@track_llm()
+def call_openai(prompt: str, model: str = "gpt-4o-mini"):
+    return client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
     )
-    
-    # Automatic logging of prompt, response, tokens, and cost
-    tracker.log_prompt_response(
-        prompt=[{"role": "user", "content": "Explain quantum computing"}],
-        response=response.choices[0].message.content,
-        model="gpt-4",
-        provider="openai",
-        token_usage={
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-        }
-    )
+
+response = call_openai("Explain quantum computing.")
+print(response.choices[0].message.content)
 ```
 
-### Using with the @track Decorator
+### Track a Streaming Call
 
 ```python
-from mltrack import track, LLMTracker
+from mltrack import track_llm
+from openai import OpenAI
 
-@track(tags={"task": "summarization"})
-def summarize_text(text: str) -> str:
-    llm_tracker = LLMTracker()
-    
-    # Your LLM call here
-    response = call_llm_api(text)
-    
-    # Log the interaction
-    llm_tracker.log_prompt_response(
-        prompt=text,
-        response=response.content,
-        model="gpt-3.5-turbo",
-        provider="openai",
-        token_usage=response.usage
+client = OpenAI()
+
+@track_llm()
+def stream_openai(prompt: str, model: str = "gpt-4o-mini"):
+    return client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
     )
-    
-    return response.content
+
+for chunk in stream_openai("Explain quantum computing."):
+    pass
 ```
 
-### Enable MLflow Auto-logging
+### Group Multiple Calls
 
-For automatic tracking without manual logging:
+```python
+from mltrack import track_llm, track_llm_context
+from anthropic import Anthropic
+
+client = Anthropic()
+
+@track_llm(name="claude-turn")
+def claude_turn(messages, model: str = "claude-3-haiku-20240307"):
+    return client.messages.create(
+        model=model,
+        messages=messages,
+        max_tokens=200,
+    )
+
+with track_llm_context(
+    "conversation",
+    tags={"llm.provider": "anthropic", "llm.model": "claude-3-haiku-20240307"},
+):
+    messages = [{"role": "user", "content": "Hi"}]
+    response = claude_turn(messages)
+```
+
+### MLflow Auto-Logging (Optional)
+
+MLflow also offers provider-specific autologging. You can use it alongside `track_llm` if desired:
 
 ```python
 import mlflow
 
-# Enable for OpenAI
 mlflow.openai.autolog()
-
-# Enable for Anthropic
 mlflow.anthropic.autolog()
-
-# Now all API calls are automatically tracked!
 ```
 
-### Multi-turn Conversations
+## Canonical Tags and Metrics
+
+### Tags
+- `llm.provider`
+- `llm.model`
+
+### Metrics
+- `llm.tokens.prompt_tokens`
+- `llm.tokens.completion_tokens`
+- `llm.tokens.total_tokens`
+- `llm.cost_usd`
+- `llm.latency_ms`
+
+### Provider-Specific Token Metrics (Optional)
+- Anthropic: `llm.tokens.cache_creation_input_tokens`, `llm.tokens.cache_read_input_tokens`
+- Bedrock: `llm.tokens.cache_read_input_tokens`, `llm.tokens.cache_write_input_tokens`
+- Gemini: `llm.tokens.cached_content_token_count`, `llm.tokens.tool_use_prompt_token_count`
+
+## Cost Estimation
+
+`mltrack` estimates cost using a LiteLLM pricing snapshot. If pricing is missing for a model, cost is not logged.
+
+To provide or refresh pricing:
+1. Generate a snapshot from LiteLLM (see `scripts/refresh_pricing_snapshot.py`).
+2. Point `MLTRACK_LLM_PRICING_SNAPSHOT` at the generated JSON if you want to override the bundled snapshot.
+
+## Integrated Providers
+
+### llama-party
+
+[llama-party](https://github.com/workhelix/llama-party) has built-in mltrack support. Install with the mltrack extra:
+
+```bash
+uv add llama-party[mltrack]
+```
+
+All LLM calls are automatically tracked—no decorators needed:
 
 ```python
-with track_llm_context("conversation", model="claude-3-sonnet", provider="anthropic") as tracker:
-    messages = []
-    
-    for user_input in user_inputs:
-        messages.append({"role": "user", "content": user_input})
-        
-        response = client.messages.create(
-            model="claude-3-sonnet-20240229",
-            messages=messages,
-            max_tokens=200
-        )
-        
-        messages.append({"role": "assistant", "content": response.content})
-        
-        # Each turn is logged with full context
-        tracker.log_prompt_response(
-            prompt=messages,
-            response=response.content,
-            model="claude-3-sonnet-20240229",
-            provider="anthropic",
-            token_usage={...}
-        )
-```
+from llama_party import LlamaPartyClient
+import mlflow
 
-## Configuration
+client = LlamaPartyClient()
 
-Add to your `.mltrack.yml`:
+# Optional: set experiment
+mlflow.set_experiment("my-app")
 
-```yaml
-# LLM tracking settings
-llm_tracking_enabled: true
-llm_log_prompts: true
-llm_log_responses: true
-llm_track_token_usage: true
-llm_track_costs: true
-llm_token_limit_warning: 100000  # Warn at 100k tokens
-llm_cost_limit_warning: 10.0     # Warn at $10 USD
-
-# Provider-specific settings
-llm_providers:
-  openai:
-    default_model: "gpt-4o-mini"
-  anthropic:
-    default_model: "claude-3-haiku-20240307"
-```
-
-## Metrics Tracked
-
-### Token Metrics
-- `llm.tokens.prompt` - Input token count
-- `llm.tokens.completion` - Output token count
-- `llm.tokens.total` - Total tokens used
-- `llm.tokens.cumulative.*` - Running totals
-
-### Cost Metrics
-- `llm.cost.prompt` - Cost for input tokens
-- `llm.cost.completion` - Cost for output tokens
-- `llm.cost.total` - Total cost per call
-- `llm.cost.cumulative` - Running total cost
-
-### Performance Metrics
-- `llm.latency` - API call response time
-- `execution_time_seconds` - Total function execution time
-
-## Custom Extractors
-
-For LLM libraries not directly supported, you can create custom extractors:
-
-```python
-def custom_prompt_extractor(args, kwargs):
-    return kwargs.get("query", "")
-
-def custom_response_extractor(response):
-    return response.get("text", "")
-
-def custom_token_extractor(response):
-    return {
-        "prompt_tokens": response.get("input_tokens", 0),
-        "completion_tokens": response.get("output_tokens", 0),
-        "total_tokens": response.get("total_tokens", 0),
-    }
-
-llm_tracker = LLMTracker()
-
-@llm_tracker.track_llm_call(
-    model="custom-model",
-    provider="custom",
-    extract_prompt=custom_prompt_extractor,
-    extract_response=custom_response_extractor,
-    extract_token_usage=custom_token_extractor,
+# Tracking happens automatically
+response = client.generate(
+    "Summarize this document...",
+    model="claude-sonnet-4-20250514"
 )
-def call_custom_llm(query: str):
-    # Your custom LLM call
-    pass
 ```
 
-## Integration with MLflow Tracing
-
-mltrack's LLM tracking integrates seamlessly with MLflow's tracing capabilities:
-
-- Automatic trace generation for supported providers
-- OpenTelemetry compatibility
-- Export traces to observability platforms
-- Production-ready monitoring
+llama-party logs the same canonical metrics (`llm.latency_ms`, `llm.tokens.*`, `llm.cost_usd`) and tags (`llm.provider`, `llm.model`, `llm.finish_reason`, `llm.request_id`) so dashboards work out of the box.
 
 ## Best Practices
 
-1. **Always track token usage** - Monitor costs and set alerts
-2. **Log full conversations** - Maintain context for debugging
-3. **Set cost limits** - Prevent unexpected charges
-4. **Use provider auto-logging** - Reduce manual tracking code
-5. **Tag your experiments** - Organize LLM experiments effectively
-
-## Limitations
-
-- 500-character limit for parameter logging (full prompts logged as artifacts)
-- Token tracking requires MLflow >= 3.1.0 for some features
-- Cost estimates are approximate and should be verified with provider billing
-- Some provider-specific features may require latest MLflow versions
-
-## Future Enhancements
-
-- Support for more LLM providers (Cohere, AI21, etc.)
-- Enhanced streaming support
-- Real-time cost alerts
-- Prompt template versioning
-- A/B testing utilities for prompts
+1. **Track tokens + cost** for budget visibility.
+2. **Log prompts and responses** for debugging (use `log_inputs=False` / `log_outputs=False` to disable).
+3. **Tag experiments** with `llm.provider` and `llm.model` for clean dashboards.
