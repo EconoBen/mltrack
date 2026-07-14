@@ -2,7 +2,7 @@
   <h1>🚀 MLTrack</h1>
   
   <p>
-    <strong>Drop-in MLflow enhancement with powerful CLI for ML deployment</strong>
+    <strong>Drop-in MLflow enhancement with a powerful CLI for ML deployment</strong>
   </p>
   
   <p>
@@ -14,9 +14,6 @@
     </a>
     <a href="https://github.com/EconoBen/mltrack/blob/main/LICENSE">
       <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
-    </a>
-    <a href="https://mltrack.readthedocs.io">
-      <img src="https://readthedocs.org/projects/mltrack/badge/?version=latest" alt="Documentation">
     </a>
     <a href="https://github.com/EconoBen/mltrack/stargazers">
       <img src="https://img.shields.io/github/stars/EconoBen/mltrack?style=social" alt="GitHub Stars">
@@ -76,9 +73,9 @@ deploy(model, platform="modal")  # or "lambda", "docker"
 ## ✨ Features
 
 ### 🏗️ **Build: Enhanced MLflow Tracking**
-- Drop-in replacement for MLflow with zero config changes
+- Drop-in enhancement for MLflow with zero config changes
 - Simple `@track` decorator adds deployment metadata automatically
-- Works with all MLflow features - just better UI and workflows
+- Works with all MLflow features, just better UI and workflows
 
 ### 🚀 **Deploy: Production in One Command**
 - **Modal**: Serverless GPU deployment with auto-scaling
@@ -89,15 +86,17 @@ deploy(model, platform="modal")  # or "lambda", "docker"
 
 ### 📊 **Monitor: Know What's Happening**
 - Real-time inference metrics and latency tracking
-- Model drift detection and alerts
 - Cost analysis (compute + LLM tokens)
-- A/B testing and canary deployments built-in
+- A modern dashboard for experiments, runs, and deployments
 
-### 💼 **Enterprise Ready**
+> Model drift detection, alerts, and A/B or canary deployments are on the [roadmap](#️-roadmap).
+
+### 💼 **Team Ready**
 - Works with existing MLflow tracking servers
 - Integrates with your current CI/CD pipelines
-- Multi-user support with SSO/SAML
-- Audit logs and compliance features
+- Multi-user support with GitHub OAuth and email magic links
+
+> SSO/SAML, audit logs, and compliance features are on the [roadmap](#️-roadmap).
 
 ### 🎯 **Built for Real ML Teams**
 - Stop juggling notebooks, scripts, and YAML configs
@@ -127,16 +126,6 @@ mltrack models list  # List all registered models
 mltrack models promote fraud-detector --from staging --to production
 mltrack models rollback fraud-detector  # Instant rollback
 
-# Monitoring and logs
-mltrack logs fraud-detector --tail  # Stream production logs
-mltrack metrics fraud-detector --window 1h  # Recent performance
-mltrack alerts create --model fraud-detector --metric latency --threshold 100ms
-
-# Batch operations
-mltrack experiments clean --older-than 30d  # Cleanup old experiments
-mltrack deploy-all models.yaml  # Deploy multiple models from config
-mltrack benchmark --models v1,v2,v3 --dataset test.csv  # Compare models
-
 # Integration with Unix tools
 mltrack list --format json | jq '.[] | select(.metrics.accuracy > 0.9)'
 mltrack export --run-id abc123 | aws s3 cp - s3://models/model.pkl
@@ -152,7 +141,6 @@ ml flow        # Launch classic MLflow UI (default port 5000)
 - **Intuitive shortcuts**: Common workflows in single commands
 - **Unix-friendly**: Pipe-able, scriptable, automation-ready  
 - **Smart defaults**: `--last`, `--best` flags for quick access
-- **Batch operations**: Handle multiple models/experiments at once
 - **Real-time monitoring**: Stream logs and metrics from production
 
 ## 🚀 Quick Start
@@ -195,7 +183,7 @@ endpoint = deploy(model,
 
 # 3. MONITOR - Track production performance
 print(f"Model deployed to: {endpoint.url}")
-# Automatic monitoring dashboard at http://localhost:3000/deployments/fraud-detection-v1
+# Monitoring dashboard at http://localhost:3000/deployments/fraud-detection-v1
 ```
 
 ### The Full Workflow
@@ -211,7 +199,7 @@ uv add ml-track
 python train.py  # Tracks with MLflow, deploys with MLTrack
 
 # Monitor everything in one place
-mltrack ui  # Beautiful dashboard at http://localhost:3000
+mltrack ui  # Dashboard at http://localhost:3000
 ```
 
 ## 📚 Documentation
@@ -294,7 +282,7 @@ graph TD
 
 ## 🤝 Contributing
 
-We love contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! Please see the [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Development Setup
 
@@ -306,8 +294,8 @@ cd mltrack
 # Install in development mode
 pip install -e ".[dev]"
 
-# Install frontend dependencies
-cd frontend
+# Install UI dependencies
+cd ui
 npm install
 
 # Run tests
@@ -325,11 +313,9 @@ npm test
 
 - [ ] **v0.2.0** - AutoML integration and hyperparameter tuning
 - [ ] **v0.3.0** - Distributed training support
-- [ ] **v0.4.0** - Model monitoring and drift detection
+- [ ] **v0.4.0** - Model monitoring, drift detection, and A/B testing
 - [ ] **v0.5.0** - Kubernetes operator for deployment
-- [ ] **v1.0.0** - Production-ready with enterprise features
-
-See our [full roadmap](ROADMAP.md) for more details.
+- [ ] **v1.0.0** - Enterprise features (SSO/SAML, audit logs, compliance)
 
 ## 🙏 Acknowledgments
 
@@ -338,7 +324,6 @@ MLTrack is built on the shoulders of giants:
 - [MLflow](https://mlflow.org/) - The core tracking engine
 - [Modal](https://modal.com/) - Serverless deployment platform
 - [Next.js](https://nextjs.org/) - React framework for the UI
-- All our [contributors](https://github.com/EconoBen/mltrack/graphs/contributors)
 
 ## 📝 License
 
@@ -355,12 +340,5 @@ MLTrack is MIT licensed. See the [LICENSE](LICENSE) file for details.
 ---
 
 <div align="center">
-  <p>
-    Made with ❤️ by the MLTrack community
-  </p>
-  <p>
-    <a href="https://twitter.com/mltrack">Twitter</a> •
-    <a href="https://discord.gg/mltrack">Discord</a> •
-    <a href="https://mltrack.io">Website</a>
-  </p>
+  <p>Built by <a href="https://econoben.dev">Ben Labaschin</a></p>
 </div>
